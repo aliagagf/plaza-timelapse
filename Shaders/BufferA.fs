@@ -146,16 +146,54 @@ float arcDist(vec3 p, vec4 cr, float angleMin, float angleMax)
 
     return dArc;
 }
+
+// Novo: retorna cor e distância do arco mais próximo entre vários arcos coloridos
+Surface multiArches(vec3 p) {
+    Surface result;
+    result.d = 1e5;
+    result.color = vec3(0.0);
+
+    // Parâmetros dos arcos
+    float raio = 1.5;
+    float comprimento = 4.0;
+    float espacamento = 4.5;
+    int nArcos = 6;
+
+    for (int i = 0; i < nArcos; ++i) {
+        float x = float(i - nArcos/2) * espacamento;
+        vec3 centro = vec3(x, 0.0, 5.0);
+        Surface arco;
+        arco.d = semicylinderDist(p, vec4(centro, raio));
+        // Alterna cor: laranja e azul
+        arco.color = (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8);
+        if (arco.d < result.d) {
+            result = arco;
+        }
+    }
+    return result;
+}
+
 Surface getSceneDist(vec3 p)
 {
-    Surface SemiCylinder;
-    SemiCylinder.color = vec3(1.0, 0.0, 0.0);
-    // Aumente o raio alterando o último valor (exemplo: 2.0)
-    SemiCylinder.d = semicylinderDist(p, vec4(0.0, 0.0, 5.0, 1.5));
-    Surface Plane;
-    Plane.color = vec3(0.7);
-    Plane.d = planeDist(p, vec4(0.0, 1.0, 0.0, 0.0)); // plano em y=0 (chão)
-    return unionS(Plane, SemiCylinder);
+    // Arcos coloridos
+    Surface arches = multiArches(p);
+
+    // Gramado (verde)
+    Surface grass;
+    grass.color = vec3(0.2, 0.6, 0.2);
+    grass.d = planeDist(p, vec4(0.0, 1.0, 0.0, 0.0)); // y=0
+
+    // Caminho (plano claro)
+    Surface path;
+    path.color = vec3(0.85, 0.8, 0.7);
+    // Aproximação: faixa larga no plano y=0, z > 2.0
+    float caminho = max(abs(p.x) - 8.0, abs(p.z - 5.0) - 1.5);
+    path.d = max(p.y, caminho);
+
+    // União dos objetos
+    Surface s = unionS(grass, arches);
+    s = unionS(s, path);
+    return s;
 }
 
 Surface rayMarching(vec3 ro,vec3 rd)
