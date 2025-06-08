@@ -1,0 +1,3 @@
+/mnt/c/Users/aliag/OneDrive/Documentos/Codes/ray-marching/build/CMakeFiles/RayMarching.dir
+/mnt/c/Users/aliag/OneDrive/Documentos/Codes/ray-marching/build/CMakeFiles/edit_cache.dir
+/mnt/c/Users/aliag/OneDrive/Documentos/Codes/ray-marching/build/CMakeFiles/rebuild_cache.dir
