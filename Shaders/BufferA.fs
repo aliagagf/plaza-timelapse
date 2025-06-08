@@ -87,18 +87,27 @@ vec3 opTransf (vec3 p, mat4 m)
     return vec4 (m * vec4 (p, 1.)).xyz;
 }
 
-
-
-
-float sphereDist(vec3 p,vec4 cr)
+float semicylinderDist(vec3 p, vec4 cr)
 {
-   vec3 c = cr.xyz-p;
-   float r = cr.w;
-   r+= 0.3*pow((0.5+0.5*sin(2.0*PI*iTime*1.2 - c.y*0.5)),4.0);
-   c.x=abs(c.x);
-   c.z*=1.2;
-   c.y+= c.x*sqrt(abs((2.0-c.x)));
-    return length(c)-r;
+    // cr.xyz = centro, cr.w = raio
+    float r = cr.w;
+    // Pulso animado (remova se não quiser animação)
+    // r += 0.3 * pow((0.5 + 0.5 * sin(2.0 * PI * iTime * 1.2)), 4.0);
+
+    // Move para o centro do semicilindro
+    vec3 q = p - cr.xyz;
+
+    // SDF de cilindro infinito ao longo de X (meio-cilindro deitado no eixo X)
+    float dCyl = length(q.yz) - r;
+
+    // Recorte para metade superior (y >= 0) -- base plana para baixo
+    float dSemi = max(dCyl, -q.y);
+
+    // Limite comprimento (ex: comprimento l=4.0 ao longo de X)
+    float l = 4.0;
+    float dCap = max(abs(q.x) - l * 0.5, dSemi);
+
+    return dCap;
 }
 
 float planeDist(vec3 p,vec4 nd)
@@ -111,15 +120,42 @@ Surface unionS(Surface s1,Surface s2)
 {
     return (s1.d<s2.d)? s1:s2;
 }
+float arcDist(vec3 p, vec4 cr, float angleMin, float angleMax)
+{
+    // cr.xyz = centro, cr.w = raio
+    float r = cr.w;
+    // Pulso animado
+    r += 0.3 * pow((0.5 + 0.5 * sin(2.0 * PI * iTime * 1.2)), 4.0);
+
+    // Move para o centro do arco
+    vec3 q = p - cr.xyz;
+
+    // SDF de cilindro infinito ao longo de Y
+    float dCyl = length(q.xz) - r;
+
+    // Limite altura (ex: altura h=2.0)
+    float h = 2.0;
+    float dCap = max(abs(q.y) - h * 0.5, dCyl);
+
+    // Limite angular (arco)
+    float angle = atan(q.z, q.x); // [-PI, PI]
+    float dAngle = max(angleMin - angle, angle - angleMax);
+
+    // Se estiver fora do arco, penaliza distância
+    float dArc = max(dCap, dAngle);
+
+    return dArc;
+}
 Surface getSceneDist(vec3 p)
 {
-    Surface Sphere;
-    Sphere.color= vec3(1.0,0.0,0.0);
-    Sphere.d = sphereDist(p,vec4(0.0,1.0,5.0,1.0));
+    Surface SemiCylinder;
+    SemiCylinder.color = vec3(1.0, 0.0, 0.0);
+    // Aumente o raio alterando o último valor (exemplo: 2.0)
+    SemiCylinder.d = semicylinderDist(p, vec4(0.0, 0.0, 5.0, 1.5));
     Surface Plane;
-    Plane.color=vec3(0.7);
-    Plane.d = planeDist(p,vec4(0.0,1.0,0.0,0.0));
-    return unionS(Plane,Sphere);
+    Plane.color = vec3(0.7);
+    Plane.d = planeDist(p, vec4(0.0, 1.0, 0.0, 0.0)); // plano em y=0 (chão)
+    return unionS(Plane, SemiCylinder);
 }
 
 Surface rayMarching(vec3 ro,vec3 rd)
@@ -153,9 +189,19 @@ vec3 estimateNormal(vec3 p)
 
 vec3 getLight(vec3 p,Surface s,vec3 CamPos)
 {
-    vec3 lp = vec3 (1.0,7.0,2.0);
-    vec3 lColor= vec3(1.0);
-    lp.xz+=vec2(sin(iTime),cos(iTime))*3.0;
+    // Luz do "sol" girando ao redor do cilindro
+    float sunRadius = 10.0;
+    float sunHeight = 6.0;
+    float sunAngle = iTime * 0.5; // velocidade de rotação
+
+    // Sol girando em torno do eixo X (pode ajustar para Y ou Z se preferir)
+    vec3 lp = vec3(
+        0.0,
+        sunHeight * cos(sunAngle),
+        sunRadius * sin(sunAngle)
+    );
+
+    vec3 lColor= vec3(1.0, 0.95, 0.85); // cor amarelada de sol
     vec3 ld = normalize(lp-p);
     vec3 n = estimateNormal(p);
     float r =clamp(dot(ld,n),0.0,1.0);
@@ -165,7 +211,7 @@ vec3 getLight(vec3 p,Surface s,vec3 CamPos)
     vec3 eye = normalize(p-CamPos);
     vec3 R =normalize(reflect(n,ld));
     float phi = clamp(dot(R,eye),0.0,1.0);
-    vec3 col=s.color*ka+s.color*r*kd+lColor*ks*pow(phi,10.0);;
+    vec3 col=s.color*ka+s.color*r*kd+lColor*ks*pow(phi,10.0);
     Surface ss =rayMarching(p+100.0*minDist*n,ld);
     if(ss.d<length(p-lp))
         col*=0.2;
