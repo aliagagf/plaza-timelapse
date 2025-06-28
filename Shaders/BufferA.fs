@@ -181,20 +181,20 @@ Surface multiArches(vec3 p) {
 
     float raio = 3;
     float raioInterno = raio - 0.05;
-    int nArcos = 6;
+    int nArcos = 4; // Changed from 6 to 4
 
-    vec3 centros[6];
-    centros[0] = vec3(-12.0, 0.0, 16.0);
-    centros[1] = vec3(-6.0, 0.0, 8.0);
-    centros[2] = vec3(-20.0, 0.0, 12.0);
-    centros[3] = vec3(0.0, 0.0, 10.0);
+    vec3 centros[4]; // Changed from [6] to [4]
+    centros[0] = vec3(-28.0, 0.0, 4.0);
+    centros[1] = vec3(-20.0, 0.0, 12.0);
+    centros[2] = vec3(-20.0, 0.0, 24.0);
+    centros[3] = vec3(-12.0, 0.0, 29.0); // Add the 4th arch position
 
     float rot90 = PI * 0.5; // 90 graus em radianos
 
     for (int i = 0; i < nArcos; ++i) {
         Surface arco;
         vec3 centro = centros[i];
-        if (i == 2) {
+        if (i == 1 || i == 2) {
             arco = rotatedSemiCylinder(p, centro, raio, raioInterno, rot90, (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8));
         } else {
             float dOuter = semicylinderDist(p, vec4(centro, raio));
@@ -291,20 +291,12 @@ Surface getSceneDist(vec3 p)
     plazaPath.color = vec3(0.85, 0.8, 0.7); // cor clara tipo concreto
     plazaPath.d = plazaPathDist(p);
 
-    // Círculo vermelho pequeno acima do chão em (0,0)
-    Surface refCircle;
-    refCircle.color = vec3(1.0, 0.0, 0.0); // vermelho puro
-    float circleRadius = 0.5;
-    float circleY = 0.25; // bem acima do chão/caminho
-    refCircle.d = length(vec3(p.x, p.y - circleY, p.z)) - circleRadius;
-
-    // União dos objetos (círculo vermelho tem prioridade visual)
+    // União dos objetos
     Surface s = unionS(grass, arches);
     s = unionS(s, path);
     s = unionS(s, path2);
     s = unionS(s, lobby);
     s = unionS(s, lobbyGrass);
-    s = unionS(s, refCircle);
     s = unionS(s, plazaPath);
     return s;
 }
