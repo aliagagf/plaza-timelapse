@@ -393,6 +393,44 @@ mat3 setCamera(vec3 CamPos,vec3 Look_at)
     return mat3(cv,cu,cd);
 }
 
+// Função para interpolar a cor do céu conforme o tempo do dia e altura do pixel (gradiente vertical)
+vec3 getSkyColor(float t, float y) {
+    // t: 0.0 (meia-noite), 0.25 (amanhecer), 0.5 (meio-dia), 0.75 (anoitecer), 1.0 (meia-noite)
+    // y: altura normalizada do pixel [0,1] (0 = horizonte, 1 = topo)
+    vec3 nightTop    = vec3(0.0, 0.0, 0.0); // noite preta no topo
+    vec3 nightBottom = vec3(0.0, 0.0, 0.0); // noite preta no horizonte
+    vec3 dawnTop     = vec3(1.0, 0.6, 0.2);    // laranja claro topo
+    vec3 dawnBottom  = vec3(1.0, 0.3, 0.0);    // laranja forte horizonte
+    vec3 dayTop      = vec3(0.4, 0.7, 1.0);    // azul claro topo
+    vec3 dayBottom   = vec3(0.7, 0.9, 1.0);    // azul quase branco horizonte
+    vec3 duskTop     = vec3(0.3, 0.08, 0.4);   // roxo topo
+    vec3 duskBottom  = vec3(0.5, 0.2, 0.5);    // roxo claro horizonte
+
+    // Interpola as cores do gradiente vertical para cada fase
+    vec3 night = mix(nightBottom, nightTop, y);
+    vec3 dawn  = mix(dawnBottom, dawnTop, y);
+    vec3 day   = mix(dayBottom, dayTop, y);
+    vec3 dusk  = mix(duskBottom, duskTop, y);
+
+    // Interpola suavemente entre as fases do dia, usando smoothstep para noite -> dawn
+    if (t < 0.2) {
+        return night;
+    } else if (t < 0.35) {
+        float f = smoothstep(0.3, 0.35, t);
+        return mix(night, dawn, f);
+    } else if (t < 0.4) {
+        float f = smoothstep(0.35, 0.4, t);
+        return mix(dawn, day, f);
+    } else if (t < 0.65) {
+        float f = smoothstep(0.6, 0.65, t);
+        return mix(day, dusk, f);
+    } else if (t < 0.7) {
+        float f = smoothstep(0.65, 0.7, t);
+        return mix(dusk, night, f);
+    } else if (t < 1.0) {
+        return night;
+    }
+}
 
 void main ()
 {
@@ -419,8 +457,14 @@ void main ()
 
     vec3 rd = normalize(vec3(uv.x, uv.y, 0.5));
     rd = M * rd;
+    float dayTime = mod(iTime / 24.0, 1.0);
+
+    // Gradiente vertical do céu: usa uv.y normalizado para [0,1]
+    float skyY = clamp((uv.y + 0.5), 0.0, 1.0);
+
     Surface sd = rayMarching(Cam + Target, rd);
-    vec3 col = COLOR_BACKGROUND;
+    vec3 col = getSkyColor(dayTime, skyY); // cor do céu dinâmica com gradiente
+
     if (sd.d < maxDist)
     {
         vec3 p = Cam + Target + sd.d * rd;
