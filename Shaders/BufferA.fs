@@ -271,6 +271,12 @@ Surface getSceneDist(vec3 p)
     float caminho = rectPathDist(p, vec2(-12.0, 4.0), vec2(20.0, 4.0), 2.5);
     path.d = max(p.y, caminho);
 
+    // Caminho reto duplicado do outro lado do quadrado (espelhado no eixo X)
+    Surface path3;
+    path3.color = vec3(0.85, 0.8, 0.7);
+    float caminho3 = rectPathDist(p, vec2(-28.0, 4.0), vec2(-60.0, 4.0), 2.5);
+    path3.d = max(p.y, caminho3);
+
     Surface path2;
     path2.color = vec3(0.85, 0.8, 0.7);
     float caminho2 = rectPathDist(p, vec2(-20.0, 4.0), vec2(-20.0, 40.0), 2.5);
@@ -291,13 +297,27 @@ Surface getSceneDist(vec3 p)
     plazaPath.color = vec3(0.85, 0.8, 0.7); // cor clara tipo concreto
     plazaPath.d = plazaPathDist(p);
 
+    // Caminho poligonal duplicado do outro lado do quadrado (espelhado no eixo X)
+    Surface plazaPath2;
+    plazaPath2.color = vec3(0.85, 0.8, 0.7);
+    // Espelha o centro do arco no eixo X
+    float width2 = 3.0;
+    vec2 center2 = vec2(-12.0, 4.0); // centro espelhado (ajuste conforme necessário)
+    float radius2 = 30.0;
+    float angleStart2 = radians(90.0);
+    float angleEnd2 = radians(180.0);
+    float d2 = curvedRoadDist(p, center2, radius2, angleStart2, angleEnd2, width2);
+    plazaPath2.d = d2;
+
     // União dos objetos
     Surface s = unionS(grass, arches);
     s = unionS(s, path);
+    s = unionS(s, path3);
     s = unionS(s, path2);
     s = unionS(s, lobby);
     s = unionS(s, lobbyGrass);
     s = unionS(s, plazaPath);
+    s = unionS(s, plazaPath2);
     return s;
 }
 
