@@ -156,7 +156,8 @@ Surface rotatedSemiCylinder(vec3 p, vec3 centro, float raio, float raioInterno, 
     vec3 pRot = vec3(x, q.y, z) + centro;
     float dOuter = semicylinderDist(pRot, vec4(centro, raio));
     float dInner = semicylinderDist(pRot, vec4(centro, raioInterno));
-    arco.d = max(dOuter, -dInner);
+    // SDF para arco oco: distância até a parede mais próxima (externa ou interna)
+    arco.d = min(abs(dOuter), abs(dInner)) * sign(dOuter);
     arco.color = color;
     return arco;
 }
@@ -172,7 +173,6 @@ Surface getRotatedArchExample(vec3 p) {
     return rotatedSemiCylinder(p, centro, raio, raioInterno, rot90, color);
 }
 
-
 // Novo: retorna cor e distância do arco mais próximo entre vários arcos coloridos
 Surface multiArches(vec3 p) {
     Surface result;
@@ -181,25 +181,26 @@ Surface multiArches(vec3 p) {
 
     float raio = 3;
     float raioInterno = raio - 0.05;
-    int nArcos = 4; // Changed from 6 to 4
+    int nArcos = 4;
 
-    vec3 centros[4]; // Changed from [6] to [4]
-    centros[0] = vec3(-28.0, 0.0, 4.0);
-    centros[1] = vec3(-20.0, 0.0, 12.0);
-    centros[2] = vec3(-20.0, 0.0, 24.0);
-    centros[3] = vec3(-12.0, 0.0, 29.0); // Add the 4th arch position
+    vec3 centros[4];
+    centros[0] = vec3(-10.0, -1.0, 0.0);
+    centros[1] = vec3(0.0, -1.0, 12.0);
+    centros[2] = vec3(20.0, -1.0, 26.0);
+    centros[3] = vec3(-4.0, -1.0, 29.0);
 
-    float rot90 = PI * 0.5; // 90 graus em radianos
+    float rot90 = PI * 0.5;
 
     for (int i = 0; i < nArcos; ++i) {
         Surface arco;
         vec3 centro = centros[i];
-        if (i == 1 || i == 2) {
+        if (i == 1) {
             arco = rotatedSemiCylinder(p, centro, raio, raioInterno, rot90, (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8));
         } else {
             float dOuter = semicylinderDist(p, vec4(centro, raio));
             float dInner = semicylinderDist(p, vec4(centro, raioInterno));
-            arco.d = max(dOuter, -dInner);
+            // SDF para arco oco: distância até a parede mais próxima (externa ou interna)
+            arco.d = min(abs(dOuter), abs(dInner)) * sign(dOuter);
             arco.color = (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8);
         }
         if (arco.d < result.d) {
@@ -236,7 +237,7 @@ float curvedRoadDist(vec3 p, vec2 center, float radius, float angleStart, float 
 float plazaPathDist(vec3 p) {
     float width = 3;
     // Parâmetros do arco da estrada
-    vec2 center = vec2(-28.0, 4.0); // centro mais afastado no eixo X
+    vec2 center = vec2(5.0, 0.0); // centro mais afastado no eixo X
     float radius = 30.0;          // raio maior para curva mais suave
     float angleStart = radians(0.0);    // início do arco
     float angleEnd = radians(90.0);     // fim do arco (curva mais aberta)
@@ -254,8 +255,8 @@ float squareDist(vec3 p, vec2 c, float s) {
 
 Surface getSceneDist(vec3 p)
 {
-    // --- Parâmetro para posição do lobby ---
-    vec2 lobbyCenter = vec2(-20.0, 4.0); // Altere livremente a posição do quadrado/lobby
+    // --- Novo centro do quadrado/lobby ---
+    vec2 lobbyCenter = vec2(0.0, 0.0); // centro da cena
 
     // Arcos coloridos
     Surface arches = multiArches(p);
@@ -268,18 +269,18 @@ Surface getSceneDist(vec3 p)
     // Caminho (plano claro)
     Surface path;
     path.color = vec3(0.85, 0.8, 0.7);
-    float caminho = rectPathDist(p, vec2(-12.0, 4.0), vec2(20.0, 4.0), 2.5);
+    float caminho = rectPathDist(p, vec2(8.0, 0.0), vec2(40.0, 0.0), 2.5);
     path.d = max(p.y, caminho);
 
     // Caminho reto duplicado do outro lado do quadrado (espelhado no eixo X)
     Surface path3;
     path3.color = vec3(0.85, 0.8, 0.7);
-    float caminho3 = rectPathDist(p, vec2(-28.0, 4.0), vec2(-60.0, 4.0), 2.5);
+    float caminho3 = rectPathDist(p, vec2(-8.0, 0.0), vec2(-40.0, 0.0), 2.5);
     path3.d = max(p.y, caminho3);
 
     Surface path2;
     path2.color = vec3(0.85, 0.8, 0.7);
-    float caminho2 = rectPathDist(p, vec2(-20.0, 4.0), vec2(-20.0, 40.0), 2.5);
+    float caminho2 = rectPathDist(p, vec2(0.0, 0.0), vec2(0.0, 36.0), 2.5);
     path2.d = max(p.y, caminho2);
 
     // Lobby de concreto (quadrado grande)
@@ -300,9 +301,8 @@ Surface getSceneDist(vec3 p)
     // Caminho poligonal duplicado do outro lado do quadrado (espelhado no eixo X)
     Surface plazaPath2;
     plazaPath2.color = vec3(0.85, 0.8, 0.7);
-    // Espelha o centro do arco no eixo X
     float width2 = 3.0;
-    vec2 center2 = vec2(-12.0, 4.0); // centro espelhado (ajuste conforme necessário)
+    vec2 center2 = vec2(8.0, 0.0); // centro espelhado
     float radius2 = 30.0;
     float angleStart2 = radians(90.0);
     float angleEnd2 = radians(180.0);
@@ -423,8 +423,8 @@ vec3 getSkyColor(float t, float y) {
     vec3 dawnBottom  = vec3(1.0, 0.3, 0.0);    // laranja forte horizonte
     vec3 dayTop      = vec3(0.4, 0.7, 1.0);    // azul claro topo
     vec3 dayBottom   = vec3(0.7, 0.9, 1.0);    // azul quase branco horizonte
-    vec3 duskTop     = vec3(0.3, 0.08, 0.4);   // roxo topo
-    vec3 duskBottom  = vec3(0.5, 0.2, 0.5);    // roxo claro horizonte
+    vec3 duskTop     = vec3(52.0/255.0, 21.0/255.0, 57.0/255.0);   // roxo topo novo
+    vec3 duskBottom  = vec3(54.0/255.0, 1.0/255.0, 63.0/255.0);  // roxo claro horizonte novo
 
     // Interpola as cores do gradiente vertical para cada fase
     vec3 night = mix(nightBottom, nightTop, y);
@@ -472,7 +472,8 @@ void main ()
     Cam.y = zoom * cos(phi);
     Cam.z = zoom * sin(phi) * sin(theta);
 
-    vec3 Target = vec3(0.0, 1.0, 6.0); // foco da câmera
+    // Novo centro da cena como alvo da câmera
+    vec3 Target = vec3(0.0, 1.0, 0.0); // centro do quadrado/lobby
     mat3 M = setCamera(Cam + Target, Target);
 
     vec3 rd = normalize(vec3(uv.x, uv.y, 0.5));
