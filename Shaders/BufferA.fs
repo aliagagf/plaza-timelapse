@@ -334,8 +334,8 @@ vec3 estimateNormal(vec3 p)
 vec3 getLight(vec3 p, Surface s, vec3 CamPos)
 {
     vec3 n = estimateNormal(p);
-    float sunRadius = 10.0;
-    float sunHeight = 6.0;
+    float sunRadius = 40.0;
+    float sunHeight = 12.0;
     float sunAngle = iTime * 0.5;
     vec3 lp = vec3(0.0, sunHeight * cos(sunAngle), sunRadius * sin(sunAngle));
     vec3 lColor= vec3(1.0, 0.95, 0.85);
@@ -406,14 +406,14 @@ void main ()
     vec2 uv = (gl_FragCoord.xy-0.5*iResolution.xy)/iResolution.xy;
     float ra =iResolution.x/iResolution.y;
     uv.x*=ra;
-    float theta = (iMouse.x / iResolution.x) * TAU;
-    float phi = (iMouse.y / iResolution.y) * PI;
+    // Panorâmica aérea automática
+    float theta = iTime * 0.2; // rotação azimutal automática
     float zoom = 12.0 - 8.0 * clamp(iMouse.w, 0.0, 1.0);
-    phi = clamp(phi, 0.1, PI - 0.1);
+    float alturaExtra = 10.0; // valor extra para aumentar a altura da câmera
     vec3 Cam;
-    Cam.x = zoom * sin(phi) * cos(theta);
-    Cam.y = zoom * cos(phi);
-    Cam.z = zoom * sin(phi) * sin(theta);
+    Cam.x = zoom * cos(theta);
+    Cam.y = alturaExtra;
+    Cam.z = zoom * sin(theta);
     vec3 Target = vec3(0.0, 1.0, 0.0);
     mat3 M = setCamera(Cam + Target, Target);
     vec3 rd = normalize(vec3(uv.x, uv.y, 0.5));
