@@ -89,24 +89,12 @@ vec3 opTransf (vec3 p, mat4 m)
 
 float semicylinderDist(vec3 p, vec4 cr)
 {
-    // cr.xyz = centro, cr.w = raio
     float r = cr.w;
-    // Pulso animado (remova se não quiser animação)
-    // r += 0.3 * pow((0.5 + 0.5 * sin(2.0 * PI * iTime * 1.2)), 4.0);
-
-    // Move para o centro do semicilindro
     vec3 q = p - cr.xyz;
-
-    // SDF de cilindro infinito ao longo de X (meio-cilindro deitado no eixo X)
     float dCyl = length(q.yz) - r;
-
-    // Recorte para metade superior (y >= 0) -- base plana para baixo
     float dSemi = max(dCyl, -q.y);
-
-    // Limite comprimento (ex: comprimento l=4.0 ao longo de X)
     float l = 4.0;
     float dCap = max(abs(q.x) - l * 0.5, dSemi);
-
     return dCap;
 }
 
@@ -178,19 +166,15 @@ Surface multiArches(vec3 p) {
     Surface result;
     result.d = 1e5;
     result.color = vec3(0.0);
-
     float raio = 3;
     float raioInterno = raio - 0.05;
     int nArcos = 4;
-
     vec3 centros[4];
     centros[0] = vec3(-10.0, -1.0, 0.0);
     centros[1] = vec3(0.0, -1.0, 12.0);
     centros[2] = vec3(20.0, -1.0, 26.0);
     centros[3] = vec3(-4.0, -1.0, 29.0);
-
     float rot90 = PI * 0.5;
-
     for (int i = 0; i < nArcos; ++i) {
         Surface arco;
         vec3 centro = centros[i];
@@ -223,24 +207,21 @@ float rectPathDist(vec3 p, vec2 a, vec2 b, float width) {
 
 // SDF para um arco de estrada curva no plano y=0
 float curvedRoadDist(vec3 p, vec2 center, float radius, float angleStart, float angleEnd, float width) {
-    // p.xz é a posição no plano
     vec2 pos = p.xz - center;
-    float ang = atan(pos.y, pos.x); // [-PI, PI]
+    float ang = atan(pos.y, pos.x);
     float arcDist = abs(length(pos) - radius) - width;
-    // Limitar ao setor angular desejado
     float angleMask = max(angleStart - ang, ang - angleEnd);
     float d = max(arcDist, angleMask);
-    return max(d, abs(p.y)); // só no plano y=0
+    return max(d, abs(p.y));
 }
 
 // Estrada curva mais aberta (raio maior, setor menor)
 float plazaPathDist(vec3 p) {
     float width = 3;
-    // Parâmetros do arco da estrada
-    vec2 center = vec2(5.0, 0.0); // centro mais afastado no eixo X
-    float radius = 30.0;          // raio maior para curva mais suave
-    float angleStart = radians(0.0);    // início do arco
-    float angleEnd = radians(90.0);     // fim do arco (curva mais aberta)
+    vec2 center = vec2(5.0, 0.0);
+    float radius = 30.0;
+    float angleStart = radians(0.0);
+    float angleEnd = radians(90.0);
     float d = curvedRoadDist(p, center, radius, angleStart, angleEnd, width);
     return d;
 }
@@ -295,7 +276,7 @@ Surface getSceneDist(vec3 p)
 
     // Caminho poligonal (cinza claro)
     Surface plazaPath;
-    plazaPath.color = vec3(0.85, 0.8, 0.7); // cor clara tipo concreto
+    plazaPath.color = vec3(0.85, 0.8, 0.7);
     plazaPath.d = plazaPathDist(p);
 
     // Caminho poligonal duplicado do outro lado do quadrado (espelhado no eixo X)
@@ -352,37 +333,13 @@ vec3 estimateNormal(vec3 p)
 
 vec3 getLight(vec3 p, Surface s, vec3 CamPos)
 {
-    // Detecta se é arco pela cor
-    bool isArch = 
-        all(greaterThanEqual(s.color, vec3(0.09))) &&
-        all(lessThanEqual(s.color, vec3(1.01)));
-
-    if (isArch) {
-        // Normal estimada
-        vec3 n = estimateNormal(p);
-        // Direção do raio de câmera
-        vec3 viewDir = normalize(CamPos - p);
-        // Se normal aponta para dentro (face interna), retorna cor de fundo
-        // if (dot(n, viewDir) < 0.0) {
-        //     return COLOR_BACKGROUND;
-        // }
-    }
-
-    // Luz do "sol" girando ao redor do cilindro
+    vec3 n = estimateNormal(p);
     float sunRadius = 10.0;
     float sunHeight = 6.0;
-    float sunAngle = iTime * 0.5; // velocidade de rotação
-
-    // Sol girando em torno do eixo X (pode ajustar para Y ou Z se preferir)
-    vec3 lp = vec3(
-        0.0,
-        sunHeight * cos(sunAngle),
-        sunRadius * sin(sunAngle)
-    );
-
-    vec3 lColor= vec3(1.0, 0.95, 0.85); // cor amarelada de sol
+    float sunAngle = iTime * 0.5;
+    vec3 lp = vec3(0.0, sunHeight * cos(sunAngle), sunRadius * sin(sunAngle));
+    vec3 lColor= vec3(1.0, 0.95, 0.85);
     vec3 ld = normalize(lp-p);
-    vec3 n = estimateNormal(p);
     float r =clamp(dot(ld,n),0.0,1.0);
     float ka =0.3;
     float kd=0.5;
@@ -394,9 +351,7 @@ vec3 getLight(vec3 p, Surface s, vec3 CamPos)
     Surface ss =rayMarching(p+100.0*minDist*n,ld);
     if(ss.d<length(p-lp))
         col*=0.2;
-
     return col;
-
 }
 mat2 Rot(float a) //2D
 {
@@ -415,24 +370,18 @@ mat3 setCamera(vec3 CamPos,vec3 Look_at)
 
 // Função para interpolar a cor do céu conforme o tempo do dia e altura do pixel (gradiente vertical)
 vec3 getSkyColor(float t, float y) {
-    // t: 0.0 (meia-noite), 0.25 (amanhecer), 0.5 (meio-dia), 0.75 (anoitecer), 1.0 (meia-noite)
-    // y: altura normalizada do pixel [0,1] (0 = horizonte, 1 = topo)
-    vec3 nightTop    = vec3(0.0, 0.0, 0.0); // noite preta no topo
-    vec3 nightBottom = vec3(0.0, 0.0, 0.0); // noite preta no horizonte
-    vec3 dawnTop     = vec3(1.0, 0.6, 0.2);    // laranja claro topo
-    vec3 dawnBottom  = vec3(1.0, 0.3, 0.0);    // laranja forte horizonte
-    vec3 dayTop      = vec3(0.4, 0.7, 1.0);    // azul claro topo
-    vec3 dayBottom   = vec3(0.7, 0.9, 1.0);    // azul quase branco horizonte
-    vec3 duskTop     = vec3(52.0/255.0, 21.0/255.0, 57.0/255.0);   // roxo topo novo
-    vec3 duskBottom  = vec3(54.0/255.0, 1.0/255.0, 63.0/255.0);  // roxo claro horizonte novo
-
-    // Interpola as cores do gradiente vertical para cada fase
+    vec3 nightTop    = vec3(0.0, 0.0, 0.0);
+    vec3 nightBottom = vec3(0.0, 0.0, 0.0);
+    vec3 dawnTop     = vec3(1.0, 0.6, 0.2);
+    vec3 dawnBottom  = vec3(1.0, 0.3, 0.0);
+    vec3 dayTop      = vec3(0.4, 0.7, 1.0);
+    vec3 dayBottom   = vec3(0.7, 0.9, 1.0);
+    vec3 duskTop     = vec3(52.0/255.0, 21.0/255.0, 57.0/255.0);
+    vec3 duskBottom  = vec3(54.0/255.0, 1.0/255.0, 63.0/255.0);
     vec3 night = mix(nightBottom, nightTop, y);
     vec3 dawn  = mix(dawnBottom, dawnTop, y);
     vec3 day   = mix(dayBottom, dayTop, y);
     vec3 dusk  = mix(duskBottom, duskTop, y);
-
-    // Interpola suavemente entre as fases do dia, usando smoothstep para noite -> dawn
     if (t < 0.2) {
         return night;
     } else if (t < 0.35) {
@@ -457,35 +406,22 @@ void main ()
     vec2 uv = (gl_FragCoord.xy-0.5*iResolution.xy)/iResolution.xy;
     float ra =iResolution.x/iResolution.y;
     uv.x*=ra;
-
-    // --- Câmera livre com mouse ---
-    float theta = (iMouse.x / iResolution.x) * TAU; // rotação horizontal
-    float phi = (iMouse.y / iResolution.y) * PI;    // rotação vertical
-    float zoom = 12.0 - 8.0 * clamp(iMouse.w, 0.0, 1.0); // zoom com scroll (opcional)
-
-    // Limitar phi para evitar flip
+    float theta = (iMouse.x / iResolution.x) * TAU;
+    float phi = (iMouse.y / iResolution.y) * PI;
+    float zoom = 12.0 - 8.0 * clamp(iMouse.w, 0.0, 1.0);
     phi = clamp(phi, 0.1, PI - 0.1);
-
-    // Coordenadas esféricas para posição da câmera
     vec3 Cam;
     Cam.x = zoom * sin(phi) * cos(theta);
     Cam.y = zoom * cos(phi);
     Cam.z = zoom * sin(phi) * sin(theta);
-
-    // Novo centro da cena como alvo da câmera
-    vec3 Target = vec3(0.0, 1.0, 0.0); // centro do quadrado/lobby
+    vec3 Target = vec3(0.0, 1.0, 0.0);
     mat3 M = setCamera(Cam + Target, Target);
-
     vec3 rd = normalize(vec3(uv.x, uv.y, 0.5));
     rd = M * rd;
     float dayTime = mod(iTime / 24.0, 1.0);
-
-    // Gradiente vertical do céu: usa uv.y normalizado para [0,1]
     float skyY = clamp((uv.y + 0.5), 0.0, 1.0);
-
     Surface sd = rayMarching(Cam + Target, rd);
-    vec3 col = getSkyColor(dayTime, skyY); // cor do céu dinâmica com gradiente
-
+    vec3 col = getSkyColor(dayTime, skyY);
     if (sd.d < maxDist)
     {
         vec3 p = Cam + Target + sd.d * rd;
