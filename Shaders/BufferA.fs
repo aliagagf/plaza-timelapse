@@ -239,6 +239,12 @@ float squareDist(vec3 p, vec2 c, float s) {
     return max(p.y, outside + inside);
 }
 
+// SDF para cilindro vertical (em pé) no eixo Y
+float verticalCylinderDist(vec3 p, vec3 center, float radius, float height) {
+    vec2 d = abs(vec2(length(p.xz - center.xz), p.y - center.y)) - vec2(radius, height * 0.5);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+}
+
 Surface getSceneDist(vec3 p)
 {
     // --- Novo centro do quadrado/lobby ---
@@ -311,6 +317,13 @@ Surface getSceneDist(vec3 p)
     plazaPath2.uv = p.xz * 0.05;
     plazaPath2.materialType = 2;
 
+    // --- Cilindro branco de pé ---
+    Surface cylinder;
+    cylinder.color = vec3(1.0); // branco
+    cylinder.d = verticalCylinderDist(p, vec3(50.0, 2.0, -12.0), 4.0, 20.0); // centro, raio, altura
+    cylinder.uv = vec2(0.0);
+    cylinder.materialType = 2; // path/concreto
+
     // União dos objetos
     Surface s = unionS(grass, arches);
     s = unionS(s, path);
@@ -320,6 +333,7 @@ Surface getSceneDist(vec3 p)
     s = unionS(s, lobbyGrass);
     s = unionS(s, plazaPath);
     s = unionS(s, plazaPath2);
+    s = unionS(s, cylinder); // adiciona o cilindro branco
     return s;
 }
 
