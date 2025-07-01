@@ -41,18 +41,6 @@ unsigned int indices[] = {
 int main()
 {
 
-    if (__cplusplus == 201703L)
-        std::cout << "C++17" << std::endl;
-    else if (__cplusplus == 201402L)
-        std::cout << "C++14" << std::endl;
-    else if (__cplusplus == 201103L)
-        std::cout << "C++11" << std::endl;
-    else if (__cplusplus == 199711L)
-        std::cout << "C++98" << std::endl;
-    else
-        std::cout << "pre-standard C++" << std::endl;
-
-
     // Use o diretório do projeto, não o diretório de build
     std::filesystem::path path = std::filesystem::current_path();
     int max_up = 5;
@@ -101,16 +89,6 @@ int main()
     std::filesystem::path TVvertexShaderPath = std::filesystem::absolute(path / "Shaders" / "TextureViewer.vs.vert");
     std::filesystem::path TVShaderPath = std::filesystem::absolute(path / "Shaders" / "TextureViewer.fs.frag");
     std::filesystem::path commonPath = std::filesystem::absolute(path / "Shaders" / "common.incl");
-
-
-    // Teste de leitura do arquivo do shader
-    std::cout << "Vertex shader path: " << vertexShaderPath << std::endl;
-    std::ifstream test(vertexShaderPath.string().c_str());
-    if (!test.is_open()) {
-        std::cout << "Arquivo do vertex shader NAO encontrado!" << std::endl;
-    } else {
-        std::cout << "Arquivo do vertex shader encontrado!" << std::endl;
-    }
 
     // Make sure your VertexShader.vs contains a line like:
     // gl_Position = ...;
@@ -177,25 +155,35 @@ int main()
     //    TEXTURES    //
     ////////////////////
 
-    //Abrindo textura presente nas pastas do projeto]
-   // const std::string container = "/../black.jpg";
-    //const std::string texturePath = pathString + container;
+    // Carregando a textura de grama
+    std::string texPath = pathString + "/textures/grass-texture.jpg";
+    int texWidth, texHeight, texChannels;
+    stbi_set_flip_vertically_on_load(true); // Inverte a textura verticalmente se necessário
+    unsigned char* texData = stbi_load(texPath.c_str(), &texWidth, &texHeight, &texChannels, 0);
 
-    //std::cout << texturePath << std::endl;
-    //const char * finalPath = texturePath.c_str();
-    //std::cout << "finalPath:" << finalPath << std::endl;
-    //int width, height, nrChannels;
-    //unsigned char *data = stbi_load(finalPath, &width, &height, &nrChannels, 0);
-
-
-
-    //printf("hello");
-
-    ////////////////////
-    //  FRAMEBUFFER   //
-    ////////////////////
-
-
+    // Carregando a textura do caminho
+    std::string pathTexPath = pathString + "/textures/path-texture.jpg";
+    int pathTexWidth, pathTexHeight, pathTexChannels;
+    unsigned char* pathTexData = stbi_load(pathTexPath.c_str(), &pathTexWidth, &pathTexHeight, &pathTexChannels, 0);
+    unsigned int pathTextureID;
+    glGenTextures(1, &pathTextureID);
+    glBindTexture(GL_TEXTURE_2D, pathTextureID);
+    GLenum pathFormat = GL_RGB;
+    if (pathTexChannels == 1) pathFormat = GL_RED;
+    else if (pathTexChannels == 3) pathFormat = GL_RGB;
+    else if (pathTexChannels == 4) pathFormat = GL_RGBA;
+    if (pathTexData) {
+        glTexImage2D(GL_TEXTURE_2D, 0, pathFormat, pathTexWidth, pathTexHeight, 0, pathFormat, GL_UNSIGNED_BYTE, pathTexData);
+    } else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    if (pathTexData) stbi_image_free(pathTexData);
 
     //Criando o framebuffer
     unsigned int FBO_0;
@@ -210,18 +198,29 @@ int main()
     glGenTextures(1, &iChannel_0);
     glBindTexture(GL_TEXTURE_2D, iChannel_0);
 
-    //Gerando uma textura vazia para ligar ao framebuffer
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    // Carregando a textura real da imagem
+    GLenum format = GL_RGB;
+    if (texChannels == 1) format = GL_RED;
+    else if (texChannels == 3) format = GL_RGB;
+    else if (texChannels == 4) format = GL_RGBA;
+
+    if (texData) {
+        glTexImage2D(GL_TEXTURE_2D, 0, format, texWidth, texHeight, 0, format, GL_UNSIGNED_BYTE, texData);
+    } else {
+        // fallback: textura vazia
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (texData) stbi_image_free(texData);
 
     //LIGANDO A TEXTURA AO FRAMBUFFER
 
@@ -399,147 +398,50 @@ double * mouse = (double *) malloc(sizeof(double)*4);
 
         if(shouldDraw)
         {
-
-          glBindFramebuffer(GL_FRAMEBUFFER, FBO_0);
-
-          // make sure we clear the framebuffer's content
+          // 1. Renderiza raymarching para FBO_1 (iChannel_1)
+          glBindFramebuffer(GL_FRAMEBUFFER, FBO_1);
           glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-          //glClear( GL_DEPTH_BUFFER_BIT);
-        //Utilização de um segundo shader para calcular vizinhança
-         BufferAprogram.use();
-        //BufferAprogram.setSampler("iChannel0",0);
-         //BufferAprogram.setSampler("iChannel1",1);
-        BufferAprogram.setVec2("iResolution",resolution) ;
-        BufferAprogram.setVec4("iMouse", mouse);
-        BufferAprogram.setFloat("iTime",currentTime);
-        BufferAprogram.setInt("iFrame",frame);
-        glBindVertexArray(VAO);
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, iChannel_0);
-       //glActiveTexture(GL_TEXTURE1);
-        //glBindTexture(GL_TEXTURE_2D, iChannel_3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
-        //glBindVertexArray(0);
-          //  glUseProgram(0);
+          glClear(GL_COLOR_BUFFER_BIT);
+          BufferAprogram.use();
+          BufferAprogram.setVec2("iResolution",resolution) ;
+          BufferAprogram.setVec4("iMouse", mouse);
+          BufferAprogram.setFloat("iTime",currentTime);
+          BufferAprogram.setInt("iFrame",frame);
+          BufferAprogram.setSampler("iChannel0",0); // textura de grama
+          BufferAprogram.setSampler("iChannel1",1); // textura do caminho
+          glBindVertexArray(VAO);
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, iChannel_0); // textura de grama
+          glActiveTexture(GL_TEXTURE1);
+          glBindTexture(GL_TEXTURE_2D, pathTextureID); // textura do caminho
+          glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
 
-         /*glBindFramebuffer(GL_FRAMEBUFFER, FBO_1);
+          // 2. Renderiza para a tela usando a textura de resultado (iChannel_1)
+          glBindFramebuffer(GL_FRAMEBUFFER, 0);
+          glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+          glClear(GL_COLOR_BUFFER_BIT);
+          Imageprogram.use();
+          Imageprogram.setVec2("iResolution",resolution);
+          Imageprogram.setFloat("iTime",currentTime);
+          Imageprogram.setInt("iFrame",frame);
+          Imageprogram.setVec4("iMouse", mouse);
+          Imageprogram.setSampler("iChannel0",0); // agora iChannel_0 é o resultado do raymarching
+          glBindVertexArray(VAO);
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, iChannel_1); // resultado do raymarching
+          glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
 
-         // make sure we clear the framebuffer's content
-         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-         //glClear(GL_DEPTH_BUFFER_BIT);
-        BufferBprogram.use();
-        BufferBprogram.setInt("iChannel0",0);
-        BufferBprogram.setInt("iChannel1",1);
-        BufferBprogram.setVec2("iResolution",resolution) ;
-        BufferBprogram.setVec4("iMouse", mouse);
-        BufferBprogram.setFloat("iTime",currentTime);
-        BufferBprogram.setInt("iFrame",frame);
-        glBindVertexArray(VAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, iChannel_0);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, iChannel_1);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
-        //glBindVertexArray(0);
-          //  glUseProgram(0);
-
-
-
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO_2);
-        // make sure we clear the framebuffer's content
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        //glClear(GL_DEPTH_BUFFER_BIT);
-        BufferCprogram.use();
-
-        BufferCprogram.setSampler("iChannel0",0);
-       //BufferCprogram.setSampler("iChannel1",1);
-       // BufferCprogram.setSampler("iChannel2",2);
-        BufferCprogram.setVec2("iResolution",resolution) ;
-        BufferCprogram.setVec4("iMouse", mouse);
-        BufferCprogram.setFloat("iTime",currentTime);
-        BufferCprogram.setInt("iFrame",frame);
-        glBindVertexArray(VAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, iChannel_1);
-        //glActiveTexture(GL_TEXTURE1);
-        //glBindTexture(GL_TEXTURE_2D, iChannel_3);
-        //glActiveTexture(GL_TEXTURE2);
-        //glBindTexture(GL_TEXTURE_2D, iChannel_2);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
-        //glBindVertexArray(0);
-        //glUseProgram(0);
-
-
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO_3);
-        // make sure we clear the framebuffer's content
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        //glClear(GL_DEPTH_BUFFER_BIT);
-        BufferDprogram.use();
-
-        BufferDprogram.setSampler("iChannel0",0);
-       BufferDprogram.setSampler("iChannel1",1);
-
-        BufferDprogram.setVec2("iResolution",resolution) ;
-        BufferDprogram.setVec4("iMouse", mouse);
-        BufferDprogram.setFloat("iTime",currentTime);
-        BufferDprogram.setInt("iFrame",frame);
-        glBindVertexArray(VAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, iChannel_0);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, iChannel_3);
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
-        //glBindVertexArray(0);
-        //glUseProgram(0);*/
-
-
-
-            //Renderizando para a tela
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            //glDisable(GL_DEPTH_TEST);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-         /*   TVShaderprogram.use();
-            TVShaderprogram.setFloat("iTime",currentTime);
-            DisplayFramebufferTexture(iChannel_1,&TVShaderprogram,TV_VAO,resolution);*/
-
-
-        Imageprogram.use();
-
-
-        glBindVertexArray(VAO);
-        Imageprogram.setVec2("iResolution",resolution) ;
-       Imageprogram.setSampler("iChannel0",0);
-        //Imageprogram.setSampler("iChannel1",1);
-       // Imageprogram.setSampler("iChannel2",2);
-        //Imageprogram.setSampler("iChannel3",3);
-        Imageprogram.setFloat("iTime",currentTime);
-        Imageprogram.setInt("iFrame",frame);
-        Imageprogram.setVec4("iMouse", mouse);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, iChannel_0);
-        //glActiveTexture(GL_TEXTURE1);
-        //glBindTexture(GL_TEXTURE_2D, iChannel_1);
-        //glActiveTexture(GL_TEXTURE2);
-        //glBindTexture(GL_TEXTURE_2D, iChannel_1);
-        //glActiveTexture(GL_TEXTURE3);
-        //glBindTexture(GL_TEXTURE_2D, iChannel_2);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
-        //glBindVertexArray(0);
-        //glUseProgram(0);
-        double CurrentTime = glfwGetTime();
-        double past = CurrentTime - lt;
-        if(past>0.1) {
-
-        fps = (float)nbFrames/past;
-        sprintf(title_string, "Introduction - FPS = %.i ", (int)fps);
-        glfwSetWindowTitle(window, title_string);
-        lt+=past;
-        nbFrames = 0;
-        }
-        nbFrames++;
-         frame++;
+          double CurrentTime = glfwGetTime();
+          double past = CurrentTime - lt;
+          if(past>0.1) {
+            fps = (float)nbFrames/past;
+            sprintf(title_string, "Introduction - FPS = %.i ", (int)fps);
+            glfwSetWindowTitle(window, title_string);
+            lt+=past;
+            nbFrames = 0;
+          }
+          nbFrames++;
+          frame++;
         }
         glfwSwapBuffers(window);
         glfwPollEvents();

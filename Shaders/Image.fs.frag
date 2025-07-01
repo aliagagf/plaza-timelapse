@@ -60,10 +60,8 @@ vec3 Filter33c(vec2 pos,mat3 kernel)
 
 void main()
 {
-    C=vec4(1.0);
-    vec2 uv = gl_FragCoord.xy;
-    //vec3 grey= Filter33c(uv,laplacian)*9.0;
-    vec3 color = texture(iChannel0,uv/iResolution.xy).xyz;
-    C.xyz=color;
+    vec2 uv = gl_FragCoord.xy / iResolution.xy;
+    vec3 color = texture(iChannel0, uv).rgb;
+    C = vec4(color, 1.0);
 }
 

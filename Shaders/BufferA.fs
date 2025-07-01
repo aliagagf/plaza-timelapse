@@ -31,6 +31,8 @@ int maxIt = 100;
 struct Surface {
     vec3 color;
     float d;
+    vec2 uv;
+    int materialType; // 0 = default, 1 = grass, 2 = path, 3 = metálico
 };
 
 
@@ -147,6 +149,7 @@ Surface rotatedSemiCylinder(vec3 p, vec3 centro, float raio, float raioInterno, 
     // SDF para arco oco: distância até a parede mais próxima (externa ou interna)
     arco.d = min(abs(dOuter), abs(dInner)) * sign(dOuter);
     arco.color = color;
+    arco.materialType = 3; // 3 = metálico
     return arco;
 }
 
@@ -180,12 +183,14 @@ Surface multiArches(vec3 p) {
         vec3 centro = centros[i];
         if (i == 1) {
             arco = rotatedSemiCylinder(p, centro, raio, raioInterno, rot90, (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8));
+            arco.materialType = 3; // 3 = metálico
         } else {
             float dOuter = semicylinderDist(p, vec4(centro, raio));
             float dInner = semicylinderDist(p, vec4(centro, raioInterno));
             // SDF para arco oco: distância até a parede mais próxima (externa ou interna)
             arco.d = min(abs(dOuter), abs(dInner)) * sign(dOuter);
             arco.color = (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8);
+            arco.materialType = 3; // 3 = metálico
         }
         if (arco.d < result.d) {
             result = arco;
@@ -246,38 +251,52 @@ Surface getSceneDist(vec3 p)
     Surface grass;
     grass.color = vec3(0.2, 0.6, 0.2);
     grass.d = planeDist(p, vec4(0.0, 1.0, 0.0, 0.0)); // y=0
+    grass.uv = p.xz * 0.05; // UV para textura de grama
+    grass.materialType = 1; // 1 = grass
 
     // Caminho (plano claro)
     Surface path;
     path.color = vec3(0.85, 0.8, 0.7);
     float caminho = rectPathDist(p, vec2(8.0, 0.0), vec2(40.0, 0.0), 2.5);
     path.d = max(p.y, caminho);
+    path.uv = p.xz * 0.05; // UV para textura do caminho
+    path.materialType = 2;
 
     // Caminho reto duplicado do outro lado do quadrado (espelhado no eixo X)
     Surface path3;
     path3.color = vec3(0.85, 0.8, 0.7);
     float caminho3 = rectPathDist(p, vec2(-8.0, 0.0), vec2(-40.0, 0.0), 2.5);
     path3.d = max(p.y, caminho3);
+    path3.uv = p.xz * 0.05;
+    path3.materialType = 2;
 
     Surface path2;
     path2.color = vec3(0.85, 0.8, 0.7);
     float caminho2 = rectPathDist(p, vec2(0.0, 0.0), vec2(0.0, 36.0), 2.5);
     path2.d = max(p.y, caminho2);
+    path2.uv = p.xz * 0.05;
+    path2.materialType = 2;
 
     // Lobby de concreto (quadrado grande)
     Surface lobby;
     lobby.color = vec3(0.85, 0.8, 0.7); // concreto
     lobby.d = squareDist(p, lobbyCenter, 8.0);
+    lobby.uv = p.xz * 0.05;
+    lobby.materialType = 2;
 
     // Grama interna do lobby (quadrado menor)
     Surface lobbyGrass;
     lobbyGrass.color = vec3(0.2, 0.6, 0.2); // grama
     lobbyGrass.d = squareDist(p, lobbyCenter, 4.0);
+    lobbyGrass.uv = p.xz * 0.05;
+    lobbyGrass.materialType = 1;
 
     // Caminho poligonal (cinza claro)
     Surface plazaPath;
     plazaPath.color = vec3(0.85, 0.8, 0.7);
     plazaPath.d = plazaPathDist(p);
+    plazaPath.uv = p.xz * 0.05;
+    plazaPath.materialType = 2;
 
     // Caminho poligonal duplicado do outro lado do quadrado (espelhado no eixo X)
     Surface plazaPath2;
@@ -289,6 +308,8 @@ Surface getSceneDist(vec3 p)
     float angleEnd2 = radians(180.0);
     float d2 = curvedRoadDist(p, center2, radius2, angleStart2, angleEnd2, width2);
     plazaPath2.d = d2;
+    plazaPath2.uv = p.xz * 0.05;
+    plazaPath2.materialType = 2;
 
     // União dos objetos
     Surface s = unionS(grass, arches);
@@ -344,10 +365,26 @@ vec3 getLight(vec3 p, Surface s, vec3 CamPos)
     float ka =0.3;
     float kd=0.5;
     float ks =0.20;
+    float shininess = 10.0;
+    vec3 baseColor = s.color;
+    vec3 specColor = vec3(1.0);
+    if (s.materialType == 1) {
+        baseColor = texture(iChannel0, s.uv).rgb;
+    }
+    if (s.materialType == 2) {
+        baseColor = texture(iChannel1, s.uv).rgb;
+    }
+    // Efeito metálico para arcos
+    if (s.materialType == 3) {
+        kd = 0.1; // menos difuso
+        ks = 1.0; // mais especular
+        shininess = 80.0; // brilho mais concentrado
+        specColor = baseColor; // cor especular igual à cor base (efeito metálico)
+    }
     vec3 eye = normalize(p-CamPos);
     vec3 R =normalize(reflect(n,ld));
     float phi = clamp(dot(R,eye),0.0,1.0);
-    vec3 col=s.color*ka+s.color*r*kd+lColor*ks*pow(phi,10.0);
+    vec3 col=baseColor*ka+baseColor*r*kd+specColor*ks*pow(phi,shininess);
     Surface ss =rayMarching(p+100.0*minDist*n,ld);
     if(ss.d<length(p-lp))
         col*=0.2;
