@@ -283,6 +283,14 @@ Surface getSceneDist(vec3 p)
     path2.uv = p.xz * 0.05;
     path2.materialType = 2;
 
+    // --- Caminho reto paralelo ao caminho da praça, passando pelo cilindro ---
+    Surface pathCylinder;
+    pathCylinder.color = vec3(0.85, 0.8, 0.7);
+    float caminhoCylinder = rectPathDist(p, vec2(-100.0, -21.0), vec2(100.0, -21.0), 10);
+    pathCylinder.d = max(p.y, caminhoCylinder);
+    pathCylinder.uv = p.xz * 0.05;
+    pathCylinder.materialType = 2;
+
     // Lobby de concreto (quadrado grande)
     Surface lobby;
     lobby.color = vec3(0.85, 0.8, 0.7); // concreto
@@ -320,20 +328,71 @@ Surface getSceneDist(vec3 p)
     // --- Cilindro branco de pé ---
     Surface cylinder;
     cylinder.color = vec3(1.0); // branco
-    cylinder.d = verticalCylinderDist(p, vec3(50.0, 2.0, -12.0), 4.0, 20.0); // centro, raio, altura
+    cylinder.d = verticalCylinderDist(p, vec3(50.0, 2.0, -22.0), 4.0, 20.0); // centro, raio, altura
     cylinder.uv = vec2(0.0);
     cylinder.materialType = 2; // path/concreto
+
+    // --- Paralelepípedo adjacente à borda do caminho do cilindro ---
+    Surface cuboid;
+    cuboid.color = vec3(0.2, 0.2, 0.2); // cinza
+    vec3 cuboidCenter = vec3(0.0, 0.5, -10.5); // próximo da praça
+    float cuboidLengthX = 200.0;
+    float cuboidSizeY = 0.5;
+    float cuboidSizeZ = 1.0;
+    vec3 dCuboid = abs(p - cuboidCenter) - vec3(cuboidLengthX * 0.5, cuboidSizeY * 0.5, cuboidSizeZ * 0.5);
+    float distCuboid = max(max(dCuboid.x, dCuboid.y), dCuboid.z);
+
+    // --- Pequena abertura no cuboid próximo à praça ---
+    vec3 openingCenter = vec3(0.0, 0.5, -10.5); // mesma altura e z do cuboid
+    float openingWidth = 4.0;
+    float openingHeight = 0.6;
+    float openingDepth = 1.1; // um pouco maior que o cuboid para atravessar
+    vec3 dOpening = abs(p - openingCenter) - vec3(openingWidth * 0.5, openingHeight * 0.5, openingDepth * 0.5);
+    float distOpening = max(max(dOpening.x, dOpening.y), dOpening.z);
+
+    // Subtrai a abertura do cuboid usando max negativo (SDF difference)
+    distCuboid = max(distCuboid, -distOpening);
+    cuboid.d = distCuboid;
+    cuboid.uv = vec2(0.0);
+    cuboid.materialType = 3; // metálico
+
+    // --- Paralelepípedo do outro lado do caminho do cilindro ---
+    Surface cuboid2;
+    cuboid2.color = vec3(0.2, 0.2, 0.2); // cinza
+    vec3 cuboidCenter2 = vec3(0.0, 0.5, -30.5);
+    vec3 dCuboid2 = abs(p - cuboidCenter2) - vec3(cuboidLengthX * 0.5, cuboidSizeY * 0.5, cuboidSizeZ * 0.5);
+    float distCuboid2 = max(max(dCuboid2.x, dCuboid2.y), dCuboid2.z);
+    cuboid2.d = distCuboid2;
+    cuboid2.uv = vec2(0.0);
+    cuboid2.materialType = 3; // metálico
+
+    // --- Pequeno caminho conectando o caminho do cilindro ao lobby ---
+    Surface connector;
+    connector.color = vec3(0.85, 0.8, 0.7); // mesma cor dos caminhos
+    // O caminho do cilindro está em z = -21, o lobby está em z = 0
+    // Vamos fazer um retângulo estreito ligando z = -21 até z = -8 (atravessando a abertura)
+    float connectorWidth = 2.0;
+    vec2 connectorA = vec2(0.0, -21.0);
+    vec2 connectorB = vec2(0.0, -8.0);
+    float dConnector = rectPathDist(p, connectorA, connectorB, connectorWidth);
+    connector.d = max(p.y, dConnector);
+    connector.uv = p.xz * 0.05;
+    connector.materialType = 2;
 
     // União dos objetos
     Surface s = unionS(grass, arches);
     s = unionS(s, path);
     s = unionS(s, path3);
     s = unionS(s, path2);
+    s = unionS(s, pathCylinder);
     s = unionS(s, lobby);
     s = unionS(s, lobbyGrass);
     s = unionS(s, plazaPath);
     s = unionS(s, plazaPath2);
-    s = unionS(s, cylinder); // adiciona o cilindro branco
+    s = unionS(s, cylinder);
+    s = unionS(s, cuboid);
+    s = unionS(s, cuboid2);
+    s = unionS(s, connector); // adiciona o caminho conector
     return s;
 }
 
@@ -390,9 +449,9 @@ vec3 getLight(vec3 p, Surface s, vec3 CamPos)
     }
     // Efeito metálico para arcos
     if (s.materialType == 3) {
-        kd = 0.1; // menos difuso
-        ks = 1.0; // mais especular
-        shininess = 80.0; // brilho mais concentrado
+        kd = 0.08; // menos difuso
+        ks = 2.0;  // MAIS especular
+        shininess = 120.0; // brilho mais concentrado
         specColor = baseColor; // cor especular igual à cor base (efeito metálico)
     }
     vec3 eye = normalize(p-CamPos);
@@ -458,7 +517,7 @@ void main ()
     float ra =iResolution.x/iResolution.y;
     uv.x*=ra;
     // Panorâmica aérea automática
-    float theta = iTime * 0.2; // rotação azimutal automática
+    float theta = iTime * 0.6; // rotação azimutal automática
     float zoom = 12.0 - 8.0 * clamp(iMouse.w, 0.0, 1.0);
     float alturaExtra = 10.0; // valor extra para aumentar a altura da câmera
     vec3 Cam;
