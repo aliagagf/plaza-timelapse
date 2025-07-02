@@ -4,4 +4,5 @@
 - Guilherme Fernandes Aliaga
 - Frederico Sant'Anna Kimura
 
-OBS: Todo o projeto foi compilado e executado usando o software QtCreator.
+Tema escolhido: EACH 20 Anos
+Criação de uma cena composta inspirada pelo projeto final da praça do campus.
