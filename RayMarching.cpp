@@ -59,14 +59,10 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // Obter monitor principal e modo de vídeo
-    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
-    const unsigned int SCR_WIDTH = mode->width;
-    const unsigned int SCR_HEIGHT = mode->height;
+    const unsigned int SCR_WIDTH = 1280;
+    const unsigned int SCR_HEIGHT = 720;
 
-    // Criar janela em fullscreen
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Introduction", primaryMonitor, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Introduction", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;

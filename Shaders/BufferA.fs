@@ -136,7 +136,7 @@ Surface multiArches(vec3 p) {
     centros[0] = vec3(-10.0, -1.0, 0.0);
     centros[1] = vec3(0.0, -1.0, 12.0);
     centros[2] = vec3(20.0, -1.0, 26.0);
-    centros[3] = vec3(-4.0, -1.0, 29.0);
+    centros[3] = vec3(-5.0, -1.0, 27.0);
     float rot90 = PI * 0.5;
     for (int i = 0; i < nArcos; ++i) {
         Surface arco;
@@ -211,21 +211,21 @@ Surface getSceneDist(vec3 p)
 
     Surface path;
     path.color = vec3(0.85, 0.8, 0.7);
-    float caminho = rectPathDist(p, vec2(8.0, 0.0), vec2(40.0, 0.0), 2.5);
+    float caminho = rectPathDist(p, vec2(8.0, 0.0), vec2(1000.0, 0.0), 2.5);
     path.d = max(p.y, caminho);
     path.uv = p.xz * 0.05;
     path.materialType = 2;
 
     Surface path3;
     path3.color = vec3(0.85, 0.8, 0.7);
-    float caminho3 = rectPathDist(p, vec2(-8.0, 0.0), vec2(-40.0, 0.0), 2.5);
+    float caminho3 = rectPathDist(p, vec2(-8.0, 0.0), vec2(-1000.0, 0.0), 2.5);
     path3.d = max(p.y, caminho3);
     path3.uv = p.xz * 0.05;
     path3.materialType = 2;
 
     Surface path2;
     path2.color = vec3(0.85, 0.8, 0.7);
-    float caminho2 = rectPathDist(p, vec2(0.0, 0.0), vec2(0.0, 36.0), 2.5);
+    float caminho2 = rectPathDist(p, vec2(0.0, 0.0), vec2(0.0, 1000.0), 2.5);
     path2.d = max(p.y, caminho2);
     path2.uv = p.xz * 0.05;
     path2.materialType = 2;
@@ -269,7 +269,7 @@ Surface getSceneDist(vec3 p)
 
     Surface cylinder;
     cylinder.color = vec3(1.0);
-    cylinder.d = verticalCylinderDist(p, vec3(50.0, 2.0, -22.0), 4.0, 20.0);
+    cylinder.d = verticalCylinderDist(p, vec3(50.0, 2.0, -22.0), 4.0, 100.0);
     cylinder.uv = vec2(0.0);
     cylinder.materialType = 2;
 
@@ -423,22 +423,35 @@ vec3 getSkyColor(float t, float y) {
     vec3 dawn  = mix(dawnBottom, dawnTop, y);
     vec3 day   = mix(dayBottom, dayTop, y);
     vec3 dusk  = mix(duskBottom, duskTop, y);
-    if (t < 0.2) {
-        return night;
-    } else if (t < 0.35) {
-        float f = smoothstep(0.3, 0.35, t);
-        return mix(night, dawn, f);
-    } else if (t < 0.4) {
-        float f = smoothstep(0.35, 0.4, t);
-        return mix(dawn, day, f);
-    } else if (t < 0.65) {
-        float f = smoothstep(0.6, 0.65, t);
+    
+    if (t == 0.0) {
+        return day;
+    } else if (t < 0.15) {
+        float f = smoothstep(0.1, 0.15, t);
         return mix(day, dusk, f);
+    } else if (t < 0.2) {
+        float f = smoothstep(0.15, 0.2, t);
+        return mix(dusk, night, f);
+    } else if (t < 0.4) {
+        float f = smoothstep(0.35, 0.4, t); 
+        return mix(night, dawn, f);
+    } else if (t < 0.45) {
+        float f = smoothstep(0.4, 0.45, t);
+        return mix(dawn, day, f);
     } else if (t < 0.7) {
         float f = smoothstep(0.65, 0.7, t);
+        return mix(day, dusk, f);
+    } else if (t < 0.75) {
+        float f = smoothstep(0.7, 0.75, t);
         return mix(dusk, night, f);
-    } else if (t < 1.0) {
-        return night;
+    } else if (t < 0.9){
+        float f = smoothstep(0.85, 0.9, t); 
+        return mix(night, dawn, f);
+    } else if (t < 0.95) {
+        float f = smoothstep(0.9, 0.95, t);
+        return mix(dawn, day, f);
+    } else {
+        return day;
     }
 }
 
@@ -447,15 +460,15 @@ void main ()
     vec2 uv = (gl_FragCoord.xy-0.5*iResolution.xy)/iResolution.xy;
     float ra =iResolution.x/iResolution.y;
     uv.x*=ra;
-    float theta = iTime * 0.6;
+    float theta = iTime * 0.2 + PI - 0.8;
     float zoom = 12.0 - 8.0 * clamp(iMouse.w, 0.0, 1.0);
-    float alturaExtra = 10.0;
+    float alturaExtra = 8.0;
     vec3 Cam;
     Cam.x = zoom * cos(theta);
     Cam.y = alturaExtra;
     Cam.z = zoom * sin(theta);
-    vec3 Target = vec3(0.0, 1.0, 0.0);
-    mat3 M = setCamera(Cam + Target, Target);
+    vec3 Target = vec3(0.0, 4.0, 0.0);
+    mat3 M = setCamera(Cam, Target);
     vec3 rd = normalize(vec3(uv.x, uv.y, 0.5));
     rd = M * rd;
     float dayTime = mod(iTime / 24.0, 1.0);
