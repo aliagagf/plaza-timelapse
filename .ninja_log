@@ -64,3 +64,7 @@
 6883	7344	7731769392831378	RayMarching.exe	d63dad870d90f91c
 6	1500	7731772936736020	CMakeFiles/RayMarching.dir/RayMarching.cpp.obj	3da03b387624485e
 1500	1675	7731772951679046	RayMarching.exe	d63dad870d90f91c
+154	1217	7731793474964391	CMakeFiles/RayMarching.dir/glad.c.obj	bdb46ec0f9c2dd33
+142	1241	7731793474844418	CMakeFiles/RayMarching.dir/stb_image/stb_image.cpp.obj	34fc41dfc42b5ccf
+164	1838	7731793475054388	CMakeFiles/RayMarching.dir/RayMarching.cpp.obj	3da03b387624485e
+1838	1997	7731793491801724	RayMarching.exe	d63dad870d90f91c

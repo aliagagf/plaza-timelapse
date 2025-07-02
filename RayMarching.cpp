@@ -16,8 +16,6 @@ char title_string[50];
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window,double *mouse, bool * shouldDraw, bool * press);
 void DisplayFramebufferTexture(unsigned int textureID, Shader *program,unsigned int VAO,glm::vec2 R);
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
 
 float vertices[] = {
     1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, 
@@ -40,7 +38,6 @@ unsigned int indices[] = {
 
 int main()
 {
-
     std::filesystem::path path = std::filesystem::current_path();
     int max_up = 5;
     while (max_up-- > 0 && !std::filesystem::exists(path / "Shaders")) {
@@ -62,7 +59,14 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Introduction", NULL, NULL);
+    // Obter monitor principal e modo de vídeo
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+    const unsigned int SCR_WIDTH = mode->width;
+    const unsigned int SCR_HEIGHT = mode->height;
+
+    // Criar janela em fullscreen
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Introduction", primaryMonitor, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
