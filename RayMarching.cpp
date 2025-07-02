@@ -20,17 +20,17 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 float vertices[] = {
-    1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-    1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-    -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-    -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left
+    1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, 
+    1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, 
+    -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, 
+    -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  
 };
 
 float TVvertices[] = {
-    1.0f,  1.0f,   1.0f, 1.0f, // top right
-    1.0f, -1.0f,   1.0f, 0.0f, // bottom right
-    -1.0f, -1.0f,   0.0f, 0.0f, // bottom left
-    -1.0f,  1.0f,   0.0f, 1.0f  // top left
+    1.0f,  1.0f,   1.0f, 1.0f, 
+    1.0f, -1.0f,   1.0f, 0.0f, 
+    -1.0f, -1.0f,   0.0f, 0.0f, 
+    -1.0f,  1.0f,   0.0f, 1.0f  
 };
 
 unsigned int indices[] = {
@@ -41,7 +41,6 @@ unsigned int indices[] = {
 int main()
 {
 
-    // Use o diretório do projeto, não o diretório de build
     std::filesystem::path path = std::filesystem::current_path();
     int max_up = 5;
     while (max_up-- > 0 && !std::filesystem::exists(path / "Shaders")) {
@@ -79,7 +78,6 @@ int main()
         return -1;
     }
 
-    // Use current directory for shader paths, not parent
     std::filesystem::path vertexShaderPath = std::filesystem::absolute(path / "Shaders" / "VertexShader.vs");
     std::filesystem::path fragmentShaderPath = std::filesystem::absolute(path / "Shaders" / "Image.fs.frag");
     std::filesystem::path fragmentShaderAPath = std::filesystem::absolute(path / "Shaders" / "BufferA.fs");
@@ -90,25 +88,15 @@ int main()
     std::filesystem::path TVShaderPath = std::filesystem::absolute(path / "Shaders" / "TextureViewer.fs.frag");
     std::filesystem::path commonPath = std::filesystem::absolute(path / "Shaders" / "common.incl");
 
-    // Make sure your VertexShader.vs contains a line like:
-    // gl_Position = ...;
-    // Otherwise, OpenGL will fail to link the program.
-
     Shader Imageprogram(commonPath.string().c_str(), vertexShaderPath.string().c_str(), fragmentShaderPath.string().c_str());
     Shader BufferAprogram(commonPath.string().c_str(), vertexShaderPath.string().c_str(), fragmentShaderAPath.string().c_str());
-  //  Shader BufferBprogram(commonPath.string().c_str(), vertexShaderPath.string().c_str(), fragmentShaderBPath.string().c_str());
-   // Shader BufferCprogram(commonPath.string().c_str(), vertexShaderPath.string().c_str(), fragmentShaderCPath.string().c_str());
-    //Shader BufferDprogram(commonPath.string().c_str(), vertexShaderPath.string().c_str(), fragmentShaderDPath.string().c_str());
-
+  
     Shader TVShaderprogram(
     commonPath.string().c_str(),
     TVvertexShaderPath.string().c_str(),
     TVShaderPath.string().c_str()
 );
 
-    ////////////////////
-    // OPENGL BÁSICOS //
-    ////////////////////
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -130,9 +118,6 @@ int main()
 
 
 
-    ////////////////////
-    // OPENGL BÁSICOS //
-    ////////////////////
     unsigned int TV_VBO, TV_VAO, TV_EBO;
     glGenVertexArrays(1, &TV_VAO);
     glGenBuffers(1, &TV_VBO);
@@ -151,17 +136,11 @@ int main()
     glEnableVertexAttribArray(1);
 
 
-    ////////////////////
-    //    TEXTURES    //
-    ////////////////////
-
-    // Carregando a textura de grama
     std::string texPath = pathString + "/textures/grass-texture.jpg";
     int texWidth, texHeight, texChannels;
-    stbi_set_flip_vertically_on_load(true); // Inverte a textura verticalmente se necessário
+    stbi_set_flip_vertically_on_load(true); 
     unsigned char* texData = stbi_load(texPath.c_str(), &texWidth, &texHeight, &texChannels, 0);
 
-    // Carregando a textura do caminho
     std::string pathTexPath = pathString + "/textures/path-texture.jpg";
     int pathTexWidth, pathTexHeight, pathTexChannels;
     unsigned char* pathTexData = stbi_load(pathTexPath.c_str(), &pathTexWidth, &pathTexHeight, &pathTexChannels, 0);
@@ -185,20 +164,39 @@ int main()
     glBindTexture(GL_TEXTURE_2D, 0);
     if (pathTexData) stbi_image_free(pathTexData);
 
-    //Criando o framebuffer
+    std::string mainPathTexPath = pathString + "/textures/main-path-texture.jpg";
+    int mainPathTexWidth, mainPathTexHeight, mainPathTexChannels;
+    unsigned char* mainPathTexData = stbi_load(mainPathTexPath.c_str(), &mainPathTexWidth, &mainPathTexHeight, &mainPathTexChannels, 0);
+    unsigned int mainPathTextureID;
+    glGenTextures(1, &mainPathTextureID);
+    glBindTexture(GL_TEXTURE_2D, mainPathTextureID);
+    GLenum mainPathFormat = GL_RGB;
+    if (mainPathTexChannels == 1) mainPathFormat = GL_RED;
+    else if (mainPathTexChannels == 3) mainPathFormat = GL_RGB;
+    else if (mainPathTexChannels == 4) mainPathFormat = GL_RGBA;
+    if (mainPathTexData) {
+        glTexImage2D(GL_TEXTURE_2D, 0, mainPathFormat, mainPathTexWidth, mainPathTexHeight, 0, mainPathFormat, GL_UNSIGNED_BYTE, mainPathTexData);
+    } else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    if (mainPathTexData) stbi_image_free(mainPathTexData);
+
     unsigned int FBO_0;
     glGenFramebuffers(1, &FBO_0);
 
-    //Ligando o framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER,FBO_0);
 
-    //Para utilizar o framebuffer, é necessário ligar a ele uma textura
     unsigned int iChannel_0;
 
     glGenTextures(1, &iChannel_0);
     glBindTexture(GL_TEXTURE_2D, iChannel_0);
 
-    // Carregando a textura real da imagem
     GLenum format = GL_RGB;
     if (texChannels == 1) format = GL_RED;
     else if (texChannels == 3) format = GL_RGB;
@@ -207,7 +205,6 @@ int main()
     if (texData) {
         glTexImage2D(GL_TEXTURE_2D, 0, format, texWidth, texHeight, 0, format, GL_UNSIGNED_BYTE, texData);
     } else {
-        // fallback: textura vazia
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     }
 
@@ -222,27 +219,23 @@ int main()
 
     if (texData) stbi_image_free(texData);
 
-    //LIGANDO A TEXTURA AO FRAMBUFFER
-
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, iChannel_0, 0 );
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
         unsigned int rbo_0;
         glGenRenderbuffers(1, &rbo_0);
         glBindRenderbuffer(GL_RENDERBUFFER, rbo_0);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_0); // now actually attach it
-        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); 
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_0); 
+        
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
 
 
-    //Criando o framebuffer
     unsigned int FBO_1;
     glGenFramebuffers(1, &FBO_1);
-    //Ligando o framebuffer
+    
     glBindFramebuffer(GL_FRAMEBUFFER,FBO_1);
 
 
@@ -251,7 +244,7 @@ int main()
     glGenTextures(1, &iChannel_1);
     glBindTexture(GL_TEXTURE_2D, iChannel_1);
 
-    //Gerando uma textura vazia para ligar ao framebuffer
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -264,28 +257,27 @@ int main()
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    //LIGANDO A TEXTURA AO FRAMBUFFER
+    
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, iChannel_1, 0);
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    
         unsigned int rbo_1;
         glGenRenderbuffers(1, &rbo_1);
         glBindRenderbuffer(GL_RENDERBUFFER, rbo_1);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_1); // now actually attach it
-        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); 
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_1); 
+        
 
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
          std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
 
 
-    //Criando o framebuffer
     unsigned int FBO_2;
     glGenFramebuffers(1, &FBO_2);
-    //Ligando o framebuffer
+    
     glBindFramebuffer(GL_FRAMEBUFFER,FBO_2);
 
     unsigned int iChannel_2;
@@ -293,7 +285,7 @@ int main()
     glGenTextures(1, &iChannel_2);
     glBindTexture(GL_TEXTURE_2D, iChannel_2);
 
-    //Gerando uma textura vazia para ligar ao framebuffer
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -306,28 +298,27 @@ int main()
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    //LIGANDO A TEXTURA AO FRAMBUFFER
+    
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, iChannel_2, 0 );
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    
         unsigned int rbo_2;
         glGenRenderbuffers(1, &rbo_2);
         glBindRenderbuffer(GL_RENDERBUFFER, rbo_2);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_2); // now actually attach it
-        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); 
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_2); 
+        
 
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
          std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
 
 
-    //Criando o framebuffer
     unsigned int FBO_3;
-    glGenFramebuffers(1, &FBO_3);
-    //Ligando o framebuffer
+    glGenFramebuffers(1, &FBO_3)
+    
     glBindFramebuffer(GL_FRAMEBUFFER,FBO_3);
 
     unsigned int iChannel_3;
@@ -335,7 +326,7 @@ int main()
     glGenTextures(1, &iChannel_3);
     glBindTexture(GL_TEXTURE_2D, iChannel_3);
 
-    //Gerando uma textura vazia para ligar ao framebuffer
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -348,35 +339,31 @@ int main()
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    //LIGANDO A TEXTURA AO FRAMBUFFER
+    
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, iChannel_3, 0 );
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    
         unsigned int rbo_3;
         glGenRenderbuffers(1, &rbo_3);
         glBindRenderbuffer(GL_RENDERBUFFER, rbo_3);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_3); // now actually attach it
-        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); 
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_3); 
+        
 
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
          std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
 
-   // int MaxTextureImageUnits;
-    //glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &MaxTextureImageUnits);
-
-//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+   
+    
 double * mouse = (double *) malloc(sizeof(double)*4);
 
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, textura);
-    //Shaderprogram2.use();
-    //Shaderprogram2.setSampler("Texture");
+    
+    
     glm::vec2 resolution(SCR_WIDTH,SCR_HEIGHT);
-    //Shaderprogram2.setVec2("iResolution",resolution);
+    
     Imageprogram.use();
     Imageprogram.setVec2("iResolution",resolution);
 
@@ -384,21 +371,19 @@ double * mouse = (double *) malloc(sizeof(double)*4);
         bool press = false;
         float currentTime;
         int frame=0;
-    ////////////////////
-    //  RENDER LOOP   //
-    ////////////////////
+    
     while(!glfwWindowShouldClose(window)){
         currentTime = static_cast<float>(glfwGetTime());
-        //Renderizando para o framebuffer criado
+        
 
           processInput(window,mouse, &shouldDraw, & press);
 
 
-           //glEnable(GL_DEPTH_TEST);
+           
 
         if(shouldDraw)
         {
-          // 1. Renderiza raymarching para FBO_1 (iChannel_1)
+          
           glBindFramebuffer(GL_FRAMEBUFFER, FBO_1);
           glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
           glClear(GL_COLOR_BUFFER_BIT);
@@ -407,16 +392,19 @@ double * mouse = (double *) malloc(sizeof(double)*4);
           BufferAprogram.setVec4("iMouse", mouse);
           BufferAprogram.setFloat("iTime",currentTime);
           BufferAprogram.setInt("iFrame",frame);
-          BufferAprogram.setSampler("iChannel0",0); // textura de grama
-          BufferAprogram.setSampler("iChannel1",1); // textura do caminho
+          BufferAprogram.setSampler("iChannel0",0); 
+          BufferAprogram.setSampler("iChannel1",1); 
+          BufferAprogram.setSampler("iChannel4",4); 
           glBindVertexArray(VAO);
           glActiveTexture(GL_TEXTURE0);
-          glBindTexture(GL_TEXTURE_2D, iChannel_0); // textura de grama
+          glBindTexture(GL_TEXTURE_2D, iChannel_0); 
           glActiveTexture(GL_TEXTURE1);
-          glBindTexture(GL_TEXTURE_2D, pathTextureID); // textura do caminho
+          glBindTexture(GL_TEXTURE_2D, pathTextureID); 
+          glActiveTexture(GL_TEXTURE4);
+          glBindTexture(GL_TEXTURE_2D, mainPathTextureID); 
           glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
 
-          // 2. Renderiza para a tela usando a textura de resultado (iChannel_1)
+          
           glBindFramebuffer(GL_FRAMEBUFFER, 0);
           glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
           glClear(GL_COLOR_BUFFER_BIT);
@@ -425,10 +413,10 @@ double * mouse = (double *) malloc(sizeof(double)*4);
           Imageprogram.setFloat("iTime",currentTime);
           Imageprogram.setInt("iFrame",frame);
           Imageprogram.setVec4("iMouse", mouse);
-          Imageprogram.setSampler("iChannel0",0); // agora iChannel_0 é o resultado do raymarching
+          Imageprogram.setSampler("iChannel0",0); 
           glBindVertexArray(VAO);
           glActiveTexture(GL_TEXTURE0);
-          glBindTexture(GL_TEXTURE_2D, iChannel_1); // resultado do raymarching
+          glBindTexture(GL_TEXTURE_2D, iChannel_1); 
           glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
 
           double CurrentTime = glfwGetTime();
@@ -467,27 +455,24 @@ double * mouse = (double *) malloc(sizeof(double)*4);
 
 void processInput(GLFWwindow *window,double *mouse, bool * shouldDraw, bool * press)
 {
-    //Caso aperte 'esc', indica que a janela deve ser fechada
+    
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
 
-    //Alocando o vetor que contém o mouse
-    //double * mouse = (double *) malloc(sizeof(double)*4);
-
-    //Encontrando a posição do mouse
+    
+    
     glfwGetCursorPos(window,&mouse[0], &mouse[1]);
     mouse[2] = 0.0;
     mouse[3] = 0.0;
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) mouse[2] = 1.0;
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) mouse[3] = 1.0;
 
-    //Normalizando as coordenadas do cursor
+    
     int h,w;
     glfwGetFramebufferSize(window, &w, &h);
-    //mouse[1] = h-mouse[1];
-    //mouse[0] = ((mouse[0]*2.0)/w) -1.0;
-    //mouse[1] = ((mouse[1]*2.0)/h) -1.0;
+    
+    
     mouse[1]=h-mouse[1];
-    //return mouse;
+    
 
     if(glfwGetKey(window, 32) == GLFW_PRESS && !*press) {
         *shouldDraw = !*shouldDraw;
@@ -515,7 +500,7 @@ void DisplayFramebufferTexture(unsigned int textureID,Shader *program, unsigned 
        glUseProgram(0);
 }
 
-//call: chamada quando um determinado evento acontece
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);

@@ -5,24 +5,16 @@ uniform sampler2D iChannel0;
 uniform sampler2D iChannel1;
 uniform sampler2D iChannel2;
 uniform sampler2D iChannel3;
+uniform sampler2D iChannel4;
 uniform vec2 iResolution;
 uniform vec4 iMouse;
 uniform float iTime;
 uniform int iFrame;
 
-
 #define PI 3.1459
 #define TAU PI*2.0
 
-const vec3 COLOR_BACKGROUND = vec3(0.4, 0.6, 1.0); // azul claro
-
-/*  Install  Istructions
-
-sudo apt-get install g++ cmake git
- sudo apt-get install libsoil-dev libglm-dev libassimp-dev libglew-dev libglfw3-dev libxinerama-dev libxcursor-dev
-libxi-dev libfreetype-dev libgl1-mesa-dev xorg-dev
-
-git clone https://github.com/JoeyDeVries/LearnOpenGL.git*/
+const vec3 COLOR_BACKGROUND = vec3(0.4, 0.6, 1.0);
 
 float minDist = 0.01;
 float maxDist = 100.;
@@ -32,21 +24,18 @@ struct Surface {
     vec3 color;
     float d;
     vec2 uv;
-    int materialType; // 0 = default, 1 = grass, 2 = path, 3 = metálico
+    int materialType;
 };
-
 
 mat4 rotX (in float angle)
 {
     float rad = radians (angle);
     float c = cos (rad);
     float s = sin (rad);
-
     mat4 mat = mat4 (vec4 (1.0, 0.0, 0.0, 0.0),
                      vec4 (0.0,   c,   s, 0.0),
                      vec4 (0.0,  -s,   c, 0.0),
                      vec4 (0.0, 0.0, 0.0, 1.0));
-
     return mat;
 }
 
@@ -55,12 +44,10 @@ mat4 rotY (in float angle)
     float rad = radians (angle);
     float c = cos (rad);
     float s = sin (rad);
-
-    mat4 mat = mat4 (vec4 (  c, 0.0,  -s, 0.0),
-                     vec4 (0.0, 1.0, 0.0, 0.0),
-                     vec4 (  s, 0.0,   c, 0.0),
-                     vec4 (0.0, 0.0, 0.0, 1.0));
-
+    mat4 mat = mat4 (vec4(  c, 0.0,  -s, 0.0),
+                     vec4(0.0, 1.0, 0.0, 0.0),
+                     vec4(  s, 0.0,   c, 0.0),
+                     vec4(0.0, 0.0, 0.0, 1.0));
     return mat;
 }
 
@@ -69,20 +56,12 @@ mat4 rotZ (in float angle)
     float rad = radians (angle);
     float c = cos (rad);
     float s = sin (rad);
-
-    mat4 mat = mat4 (vec4 (  c,   s, 0.0, 0.0),
-                     vec4 ( -s,   c, 0.0, 0.0),
-                     vec4 (0.0, 0.0, 1.0, 0.0),
-                     vec4 (0.0, 0.0, 0.0, 1.0));
-
+    mat4 mat = mat4 (vec4(  c,   s, 0.0, 0.0),
+                     vec4( -s,   c, 0.0, 0.0),
+                     vec4(0.0, 0.0, 1.0, 0.0),
+                     vec4(0.0, 0.0, 0.0, 1.0));
     return mat;
 }
-
-// Tarefa
-
-//Operaçoes  de translação
-
-// Operações de escala
 
 vec3 opTransf (vec3 p, mat4 m)
 {
@@ -102,7 +81,6 @@ float semicylinderDist(vec3 p, vec4 cr)
 
 float planeDist(vec3 p,vec4 nd)
 {
-
     return dot(p,nd.xyz)-nd.w;
 }
 
@@ -112,32 +90,18 @@ Surface unionS(Surface s1,Surface s2)
 }
 float arcDist(vec3 p, vec4 cr, float angleMin, float angleMax)
 {
-    // cr.xyz = centro, cr.w = raio
     float r = cr.w;
-    // Pulso animado
     r += 0.3 * pow((0.5 + 0.5 * sin(2.0 * PI * iTime * 1.2)), 4.0);
-
-    // Move para o centro do arco
     vec3 q = p - cr.xyz;
-
-    // SDF de cilindro infinito ao longo de Y
     float dCyl = length(q.xz) - r;
-
-    // Limite altura (ex: altura h=2.0)
     float h = 2.0;
     float dCap = max(abs(q.y) - h * 0.5, dCyl);
-
-    // Limite angular (arco)
-    float angle = atan(q.z, q.x); // [-PI, PI]
+    float angle = atan(q.z, q.x);
     float dAngle = max(angleMin - angle, angle - angleMax);
-
-    // Se estiver fora do arco, penaliza distância
     float dArc = max(dCap, dAngle);
-
     return dArc;
 }
 
-// Função para arco semicilíndrico rotacionado em angleRad no plano XZ
 Surface rotatedSemiCylinder(vec3 p, vec3 centro, float raio, float raioInterno, float angleRad, vec3 color) {
     Surface arco;
     vec3 q = p - centro;
@@ -146,25 +110,21 @@ Surface rotatedSemiCylinder(vec3 p, vec3 centro, float raio, float raioInterno, 
     vec3 pRot = vec3(x, q.y, z) + centro;
     float dOuter = semicylinderDist(pRot, vec4(centro, raio));
     float dInner = semicylinderDist(pRot, vec4(centro, raioInterno));
-    // SDF para arco oco: distância até a parede mais próxima (externa ou interna)
     arco.d = min(abs(dOuter), abs(dInner)) * sign(dOuter);
     arco.color = color;
-    arco.materialType = 3; // 3 = metálico
+    arco.materialType = 3;
     return arco;
 }
 
-// Exemplo de uso para um arco específico:
 Surface getRotatedArchExample(vec3 p) {
-    // Parâmetros do arco
     vec3 centro = vec3(-20.0, 0.0, 12.0);
     float raio = 3.0;
     float raioInterno = raio - 0.05;
-    float rot90 = PI * 0.5; // 90 graus
+    float rot90 = PI * 0.5;
     vec3 color = vec3(1.0, 0.5, 0.1);
     return rotatedSemiCylinder(p, centro, raio, raioInterno, rot90, color);
 }
 
-// Novo: retorna cor e distância do arco mais próximo entre vários arcos coloridos
 Surface multiArches(vec3 p) {
     Surface result;
     result.d = 1e5;
@@ -183,14 +143,13 @@ Surface multiArches(vec3 p) {
         vec3 centro = centros[i];
         if (i == 1) {
             arco = rotatedSemiCylinder(p, centro, raio, raioInterno, rot90, (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8));
-            arco.materialType = 3; // 3 = metálico
+            arco.materialType = 3;
         } else {
             float dOuter = semicylinderDist(p, vec4(centro, raio));
             float dInner = semicylinderDist(p, vec4(centro, raioInterno));
-            // SDF para arco oco: distância até a parede mais próxima (externa ou interna)
             arco.d = min(abs(dOuter), abs(dInner)) * sign(dOuter);
             arco.color = (i % 2 == 0) ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.7, 0.8);
-            arco.materialType = 3; // 3 = metálico
+            arco.materialType = 3;
         }
         if (arco.d < result.d) {
             result = arco;
@@ -199,18 +158,15 @@ Surface multiArches(vec3 p) {
     return result;
 }
 
-// SDF para um segmento retangular no plano y=0
 float rectPathDist(vec3 p, vec2 a, vec2 b, float width) {
-    // p.xz é a posição no plano
     vec2 pa = p.xz - a;
     vec2 ba = b - a;
     float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
     vec2 proj = a + h * ba;
     float d = length(p.xz - proj) - width;
-    return max(d, abs(p.y)); // só no plano y=0
+    return max(d, abs(p.y));
 }
 
-// SDF para um arco de estrada curva no plano y=0
 float curvedRoadDist(vec3 p, vec2 center, float radius, float angleStart, float angleEnd, float width) {
     vec2 pos = p.xz - center;
     float ang = atan(pos.y, pos.x);
@@ -220,7 +176,6 @@ float curvedRoadDist(vec3 p, vec2 center, float radius, float angleStart, float 
     return max(d, abs(p.y));
 }
 
-// Estrada curva mais aberta (raio maior, setor menor)
 float plazaPathDist(vec3 p) {
     float width = 3;
     vec2 center = vec2(5.0, 0.0);
@@ -231,7 +186,6 @@ float plazaPathDist(vec3 p) {
     return d;
 }
 
-// SDF para um quadrado no plano y=0, centrado em c, com semi-lado s
 float squareDist(vec3 p, vec2 c, float s) {
     vec2 d = abs(p.xz - c) - vec2(s, s);
     float outside = length(max(d, 0.0));
@@ -239,7 +193,6 @@ float squareDist(vec3 p, vec2 c, float s) {
     return max(p.y, outside + inside);
 }
 
-// SDF para cilindro vertical (em pé) no eixo Y
 float verticalCylinderDist(vec3 p, vec3 center, float radius, float height) {
     vec2 d = abs(vec2(length(p.xz - center.xz), p.y - center.y)) - vec2(radius, height * 0.5);
     return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
@@ -247,28 +200,22 @@ float verticalCylinderDist(vec3 p, vec3 center, float radius, float height) {
 
 Surface getSceneDist(vec3 p)
 {
-    // --- Novo centro do quadrado/lobby ---
-    vec2 lobbyCenter = vec2(0.0, 0.0); // centro da cena
-
-    // Arcos coloridos
+    vec2 lobbyCenter = vec2(0.0, 0.0);
     Surface arches = multiArches(p);
-
-    // Gramado (verde)
+    
     Surface grass;
     grass.color = vec3(0.2, 0.6, 0.2);
-    grass.d = planeDist(p, vec4(0.0, 1.0, 0.0, 0.0)); // y=0
-    grass.uv = p.xz * 0.05; // UV para textura de grama
-    grass.materialType = 1; // 1 = grass
+    grass.d = planeDist(p, vec4(0.0, 1.0, 0.0, 0.0));
+    grass.uv = p.xz * 0.05;
+    grass.materialType = 1;
 
-    // Caminho (plano claro)
     Surface path;
     path.color = vec3(0.85, 0.8, 0.7);
     float caminho = rectPathDist(p, vec2(8.0, 0.0), vec2(40.0, 0.0), 2.5);
     path.d = max(p.y, caminho);
-    path.uv = p.xz * 0.05; // UV para textura do caminho
+    path.uv = p.xz * 0.05;
     path.materialType = 2;
 
-    // Caminho reto duplicado do outro lado do quadrado (espelhado no eixo X)
     Surface path3;
     path3.color = vec3(0.85, 0.8, 0.7);
     float caminho3 = rectPathDist(p, vec2(-8.0, 0.0), vec2(-40.0, 0.0), 2.5);
@@ -283,40 +230,35 @@ Surface getSceneDist(vec3 p)
     path2.uv = p.xz * 0.05;
     path2.materialType = 2;
 
-    // --- Caminho reto paralelo ao caminho da praça, passando pelo cilindro ---
     Surface pathCylinder;
     pathCylinder.color = vec3(0.85, 0.8, 0.7);
     float caminhoCylinder = rectPathDist(p, vec2(-100.0, -21.0), vec2(100.0, -21.0), 10);
     pathCylinder.d = max(p.y, caminhoCylinder);
     pathCylinder.uv = p.xz * 0.05;
-    pathCylinder.materialType = 2;
+    pathCylinder.materialType = 4;
 
-    // Lobby de concreto (quadrado grande)
     Surface lobby;
-    lobby.color = vec3(0.85, 0.8, 0.7); // concreto
+    lobby.color = vec3(0.85, 0.8, 0.7);
     lobby.d = squareDist(p, lobbyCenter, 8.0);
     lobby.uv = p.xz * 0.05;
     lobby.materialType = 2;
 
-    // Grama interna do lobby (quadrado menor)
     Surface lobbyGrass;
-    lobbyGrass.color = vec3(0.2, 0.6, 0.2); // grama
+    lobbyGrass.color = vec3(0.2, 0.6, 0.2);
     lobbyGrass.d = squareDist(p, lobbyCenter, 4.0);
     lobbyGrass.uv = p.xz * 0.05;
     lobbyGrass.materialType = 1;
 
-    // Caminho poligonal (cinza claro)
     Surface plazaPath;
     plazaPath.color = vec3(0.85, 0.8, 0.7);
     plazaPath.d = plazaPathDist(p);
     plazaPath.uv = p.xz * 0.05;
     plazaPath.materialType = 2;
 
-    // Caminho poligonal duplicado do outro lado do quadrado (espelhado no eixo X)
     Surface plazaPath2;
     plazaPath2.color = vec3(0.85, 0.8, 0.7);
     float width2 = 3.0;
-    vec2 center2 = vec2(8.0, 0.0); // centro espelhado
+    vec2 center2 = vec2(8.0, 0.0);
     float radius2 = 30.0;
     float angleStart2 = radians(90.0);
     float angleEnd2 = radians(180.0);
@@ -325,52 +267,42 @@ Surface getSceneDist(vec3 p)
     plazaPath2.uv = p.xz * 0.05;
     plazaPath2.materialType = 2;
 
-    // --- Cilindro branco de pé ---
     Surface cylinder;
-    cylinder.color = vec3(1.0); // branco
-    cylinder.d = verticalCylinderDist(p, vec3(50.0, 2.0, -22.0), 4.0, 20.0); // centro, raio, altura
+    cylinder.color = vec3(1.0);
+    cylinder.d = verticalCylinderDist(p, vec3(50.0, 2.0, -22.0), 4.0, 20.0);
     cylinder.uv = vec2(0.0);
-    cylinder.materialType = 2; // path/concreto
+    cylinder.materialType = 2;
 
-    // --- Paralelepípedo adjacente à borda do caminho do cilindro ---
     Surface cuboid;
-    cuboid.color = vec3(0.2, 0.2, 0.2); // cinza
-    vec3 cuboidCenter = vec3(0.0, 0.5, -10.5); // próximo da praça
+    cuboid.color = vec3(0.2, 0.2, 0.2);
+    vec3 cuboidCenter = vec3(0.0, 0.5, -10.5);
     float cuboidLengthX = 200.0;
     float cuboidSizeY = 0.5;
     float cuboidSizeZ = 1.0;
     vec3 dCuboid = abs(p - cuboidCenter) - vec3(cuboidLengthX * 0.5, cuboidSizeY * 0.5, cuboidSizeZ * 0.5);
     float distCuboid = max(max(dCuboid.x, dCuboid.y), dCuboid.z);
-
-    // --- Pequena abertura no cuboid próximo à praça ---
-    vec3 openingCenter = vec3(0.0, 0.5, -10.5); // mesma altura e z do cuboid
+    vec3 openingCenter = vec3(0.0, 0.5, -10.5);
     float openingWidth = 4.0;
     float openingHeight = 0.6;
-    float openingDepth = 1.1; // um pouco maior que o cuboid para atravessar
+    float openingDepth = 1.1;
     vec3 dOpening = abs(p - openingCenter) - vec3(openingWidth * 0.5, openingHeight * 0.5, openingDepth * 0.5);
     float distOpening = max(max(dOpening.x, dOpening.y), dOpening.z);
-
-    // Subtrai a abertura do cuboid usando max negativo (SDF difference)
     distCuboid = max(distCuboid, -distOpening);
     cuboid.d = distCuboid;
     cuboid.uv = vec2(0.0);
-    cuboid.materialType = 3; // metálico
+    cuboid.materialType = 3;
 
-    // --- Paralelepípedo do outro lado do caminho do cilindro ---
     Surface cuboid2;
-    cuboid2.color = vec3(0.2, 0.2, 0.2); // cinza
+    cuboid2.color = vec3(0.2, 0.2, 0.2);
     vec3 cuboidCenter2 = vec3(0.0, 0.5, -30.5);
     vec3 dCuboid2 = abs(p - cuboidCenter2) - vec3(cuboidLengthX * 0.5, cuboidSizeY * 0.5, cuboidSizeZ * 0.5);
     float distCuboid2 = max(max(dCuboid2.x, dCuboid2.y), dCuboid2.z);
     cuboid2.d = distCuboid2;
     cuboid2.uv = vec2(0.0);
-    cuboid2.materialType = 3; // metálico
+    cuboid2.materialType = 3;
 
-    // --- Pequeno caminho conectando o caminho do cilindro ao lobby ---
     Surface connector;
-    connector.color = vec3(0.85, 0.8, 0.7); // mesma cor dos caminhos
-    // O caminho do cilindro está em z = -21, o lobby está em z = 0
-    // Vamos fazer um retângulo estreito ligando z = -21 até z = -8 (atravessando a abertura)
+    connector.color = vec3(0.85, 0.8, 0.7);
     float connectorWidth = 2.0;
     vec2 connectorA = vec2(0.0, -21.0);
     vec2 connectorB = vec2(0.0, -8.0);
@@ -379,12 +311,10 @@ Surface getSceneDist(vec3 p)
     connector.uv = p.xz * 0.05;
     connector.materialType = 2;
 
-    // União dos objetos
     Surface s = unionS(grass, arches);
     s = unionS(s, path);
     s = unionS(s, path3);
     s = unionS(s, path2);
-    s = unionS(s, pathCylinder);
     s = unionS(s, lobby);
     s = unionS(s, lobbyGrass);
     s = unionS(s, plazaPath);
@@ -392,7 +322,8 @@ Surface getSceneDist(vec3 p)
     s = unionS(s, cylinder);
     s = unionS(s, cuboid);
     s = unionS(s, cuboid2);
-    s = unionS(s, connector); // adiciona o caminho conector
+    s = unionS(s, connector);
+    s = unionS(s, pathCylinder);
     return s;
 }
 
@@ -424,7 +355,6 @@ vec3 estimateNormal(vec3 p)
     return normalize(n);
 }
 
-
 vec3 getLight(vec3 p, Surface s, vec3 CamPos)
 {
     vec3 n = estimateNormal(p);
@@ -447,12 +377,14 @@ vec3 getLight(vec3 p, Surface s, vec3 CamPos)
     if (s.materialType == 2) {
         baseColor = texture(iChannel1, s.uv).rgb;
     }
-    // Efeito metálico para arcos
     if (s.materialType == 3) {
-        kd = 0.08; // menos difuso
-        ks = 2.0;  // MAIS especular
-        shininess = 120.0; // brilho mais concentrado
-        specColor = baseColor; // cor especular igual à cor base (efeito metálico)
+        kd = 0.08;
+        ks = 2.0;
+        shininess = 120.0;
+        specColor = baseColor;
+    }
+    if (s.materialType == 4) {
+        baseColor = texture(iChannel4, s.uv).rgb;
     }
     vec3 eye = normalize(p-CamPos);
     vec3 R =normalize(reflect(n,ld));
@@ -463,7 +395,7 @@ vec3 getLight(vec3 p, Surface s, vec3 CamPos)
         col*=0.2;
     return col;
 }
-mat2 Rot(float a) //2D
+mat2 Rot(float a)
 {
     float s = sin(a);
     float c = cos(a);
@@ -478,7 +410,6 @@ mat3 setCamera(vec3 CamPos,vec3 Look_at)
     return mat3(cv,cu,cd);
 }
 
-// Função para interpolar a cor do céu conforme o tempo do dia e altura do pixel (gradiente vertical)
 vec3 getSkyColor(float t, float y) {
     vec3 nightTop    = vec3(0.0, 0.0, 0.0);
     vec3 nightBottom = vec3(0.0, 0.0, 0.0);
@@ -516,10 +447,9 @@ void main ()
     vec2 uv = (gl_FragCoord.xy-0.5*iResolution.xy)/iResolution.xy;
     float ra =iResolution.x/iResolution.y;
     uv.x*=ra;
-    // Panorâmica aérea automática
-    float theta = iTime * 0.6; // rotação azimutal automática
+    float theta = iTime * 0.6;
     float zoom = 12.0 - 8.0 * clamp(iMouse.w, 0.0, 1.0);
-    float alturaExtra = 10.0; // valor extra para aumentar a altura da câmera
+    float alturaExtra = 10.0;
     vec3 Cam;
     Cam.x = zoom * cos(theta);
     Cam.y = alturaExtra;
