@@ -317,7 +317,7 @@ int main()
 
 
     unsigned int FBO_3;
-    glGenFramebuffers(1, &FBO_3)
+    glGenFramebuffers(1, &FBO_3);
     
     glBindFramebuffer(GL_FRAMEBUFFER,FBO_3);
 
